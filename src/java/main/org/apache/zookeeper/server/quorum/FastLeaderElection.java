@@ -714,6 +714,7 @@ public class FastLeaderElection implements Election {
      * changes its state to LOOKING, this method is invoked, and it
      * sends notifications to all other peers.
      */
+    @Override
     public Vote lookForLeader() throws InterruptedException {
         try {
             self.jmxLeaderElectionBean = new LeaderElectionBean();
@@ -734,18 +735,21 @@ public class FastLeaderElection implements Election {
             int notTimeout = finalizeWait;
 
             synchronized(this){
+                //给自己投票
                 logicalclock++;
                 updateProposal(getInitId(), getInitLastLoggedZxid(), getPeerEpoch());
             }
 
             LOG.info("New election. My id =  " + self.getId() +
                     ", proposed zxid=0x" + Long.toHexString(proposedZxid));
+            //将投票信息发送给集群中的每个服务器
             sendNotifications();
 
             /*
              * Loop in which we exchange notifications until we find a leader
+             * 循环，在此循环中，我们交换通知，直到找到领导
              */
-
+            //循环，如果是竞选状态一直到选举出结果
             while ((self.getPeerState() == ServerState.LOOKING) &&
                     (!stop)){
                 /*
@@ -759,6 +763,7 @@ public class FastLeaderElection implements Election {
                  * Sends more notifications if haven't received enough.
                  * Otherwise processes new notification.
                  */
+                //没有收到投票信息
                 if(n == null){
                     if(manager.haveDelivered()){
                         sendNotifications();
@@ -774,6 +779,7 @@ public class FastLeaderElection implements Election {
                             tmpTimeOut : maxNotificationInterval);
                     LOG.info("Notification time out: " + notTimeout);
                 }
+                //收到投票信息
                 else if(self.getVotingView().containsKey(n.sid)) {
                     /*
                      * Only proceed if the vote comes from a replica in the
@@ -782,9 +788,11 @@ public class FastLeaderElection implements Election {
                     switch (n.state) {
                     case LOOKING:
                         // If notification > current, replace and send messages out
+                        // 判断投票是否过时，如果过时就清除之前已经接收到的信息
                         if (n.electionEpoch > logicalclock) {
                             logicalclock = n.electionEpoch;
                             recvset.clear();
+                            //更新投票信息
                             if(totalOrderPredicate(n.leader, n.zxid, n.peerEpoch,
                                     getInitId(), getInitLastLoggedZxid(), getPeerEpoch())) {
                                 updateProposal(n.leader, n.zxid, n.peerEpoch);
@@ -793,8 +801,10 @@ public class FastLeaderElection implements Election {
                                         getInitLastLoggedZxid(),
                                         getPeerEpoch());
                             }
+                            //发送投票信息
                             sendNotifications();
                         } else if (n.electionEpoch < logicalclock) {
+                            //忽略
                             if(LOG.isDebugEnabled()){
                                 LOG.debug("Notification election epoch is smaller than logicalclock. n.electionEpoch = 0x"
                                         + Long.toHexString(n.electionEpoch)
@@ -803,6 +813,7 @@ public class FastLeaderElection implements Election {
                             break;
                         } else if (totalOrderPredicate(n.leader, n.zxid, n.peerEpoch,
                                 proposedLeader, proposedZxid, proposedEpoch)) {
+                            //更新投票信息
                             updateProposal(n.leader, n.zxid, n.peerEpoch);
                             sendNotifications();
                         }
@@ -816,6 +827,7 @@ public class FastLeaderElection implements Election {
 
                         recvset.put(n.sid, new Vote(n.leader, n.zxid, n.electionEpoch, n.peerEpoch));
 
+                        //判断是否投票结束
                         if (termPredicate(recvset,
                                 new Vote(proposedLeader, proposedZxid,
                                         logicalclock, proposedEpoch))) {
@@ -846,6 +858,7 @@ public class FastLeaderElection implements Election {
                         }
                         break;
                     case OBSERVING:
+                        //忽略
                         LOG.debug("Notification from observer: " + n.sid);
                         break;
                     case FOLLOWING:
@@ -854,8 +867,10 @@ public class FastLeaderElection implements Election {
                          * Consider all notifications from the same epoch
                          * together.
                          */
+                        //如果是同一轮投票
                         if(n.electionEpoch == logicalclock){
                             recvset.put(n.sid, new Vote(n.leader, n.zxid, n.electionEpoch, n.peerEpoch));
+                            //判断是否投票结束
                             if(termPredicate(recvset, new Vote(n.leader,
                                             n.zxid, n.electionEpoch, n.peerEpoch, n.state))
                                             && checkLeader(outofelection, n.leader, n.electionEpoch)) {
@@ -872,6 +887,7 @@ public class FastLeaderElection implements Election {
                          * Before joining an established ensemble, verify that
                          * a majority are following the same leader.
                          */
+                        //记录投票已经完成
                         outofelection.put(n.sid, new Vote(n.leader, n.zxid,
                                 n.electionEpoch, n.peerEpoch, n.state));
                         if (termPredicate(outofelection, new Vote(n.leader,
@@ -888,6 +904,7 @@ public class FastLeaderElection implements Election {
                         }
                         break;
                     default:
+                        //忽略
                         LOG.warn("Notification state unrecoginized: " + n.state
                               + " (n.state), " + n.sid + " (n.sid)");
                         break;
