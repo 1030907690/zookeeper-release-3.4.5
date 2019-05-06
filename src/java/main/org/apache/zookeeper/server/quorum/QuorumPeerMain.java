@@ -6,9 +6,9 @@
  * to you under the Apache License, Version 2.0 (the
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,6 +22,7 @@ import java.io.IOException;
 
 import javax.management.JMException;
 
+import org.apache.log4j.PropertyConfigurator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.zookeeper.jmx.ManagedUtil;
@@ -72,7 +73,21 @@ public class QuorumPeerMain {
      * the command line.
      * @param args path to the configfile
      */
+    //1.Zookeeper启动类是QuorumPeerMain，并将配置文件通过args参数方式传入
     public static void main(String[] args) {
+        String configPathPrefix = "F:\\work\\zookeeper-release-3.4.5\\conf\\";
+        //为了方便debug 增加cfg路径 2019年5月6日11:47:08
+        if (args.length < 1) {
+            args = new String[1];
+            args[0] = configPathPrefix + "zoo_sample.cfg";
+
+            //自定义log4j.properties的加载位置 2019年5月6日11:58:07
+            PropertyConfigurator.configure(configPathPrefix + "log4j.properties");
+
+        }
+
+
+
         QuorumPeerMain main = new QuorumPeerMain();
         try {
             main.initializeAndRun(args);
@@ -93,66 +108,99 @@ public class QuorumPeerMain {
         System.exit(0);
     }
 
+    //启动并且运行
     protected void initializeAndRun(String[] args)
-        throws ConfigException, IOException
-    {
+            throws ConfigException, IOException {
+        //2.然后将传入的配置文件进行解析获取到QuorumPeerConfig配置类
         QuorumPeerConfig config = new QuorumPeerConfig();
         if (args.length == 1) {
+            //解析配置文件
             config.parse(args[0]);
         }
 
         // Start and schedule the the purge task
+        /*3、然后启动DatadirCleanupManager线程，由于Zookeeper的任何一个变更操作(增、删、改)都将在transaction log中进行记录，
+        因为内存中的数据掉电后会丢失，必须写入到硬盘上的transaction log中；当写操作达到一定量或者一定时间间隔后，会对内存中的数据进行一次快照并写入到硬盘上的snap log中，
+        主要为了缩短启动时加载数据的时间从而加快系统启动，另一方面避免transaction log日志数量过度膨胀。随着运行时间的增长生成的transaction log和snapshot将越来越多，
+        所以要定期清理，DatadirCleanupManager就是启动一个TimeTask定时任务用于清理DataDir中的snapshot及对应的transaction log*/
+        /*
+        DatadirCleanupManager主要有两个参数：
+            snapRetainCount:清理后保留的snapshot的个数,对应配置:autopurge.snapRetainCount,大于等于3,默认3
+            purgeInterval:清理任务TimeTask执行周期,即几个小时清理一次,对应配置:autopurge.purgeInterval,单位:小时
+        * */
+        //数据目录清理管理器
         DatadirCleanupManager purgeMgr = new DatadirCleanupManager(config
                 .getDataDir(), config.getDataLogDir(), config
                 .getSnapRetainCount(), config.getPurgeInterval());
         purgeMgr.start();
 
+        /***
+         4、根据配置中的servers数量判断是集群环境还是单机环境，如果单机环境以standalone模式运行直接调用ZooKeeperServerMain.main()方法，
+         这里就不细说，生产环境下主要是利用Zookeeper的集群环境，下面也主要是分析Zookeeper的集群环境下运行流程
+         * */
         if (args.length == 1 && config.servers.size() > 0) {
+            //根据配置运行
             runFromConfig(config);
         } else {
             LOG.warn("Either no config or no quorum defined in config, running "
                     + " in standalone mode");
             // there is only server in the quorum -- run as standalone
+            //单机环境运行
             ZooKeeperServerMain.main(args);
         }
     }
 
+
     public void runFromConfig(QuorumPeerConfig config) throws IOException {
-      try {
-          ManagedUtil.registerLog4jMBeans();
-      } catch (JMException e) {
-          LOG.warn("Unable to register log4j JMX control", e);
-      }
-  
-      LOG.info("Starting quorum peer");
-      try {
-          ServerCnxnFactory cnxnFactory = ServerCnxnFactory.createFactory();
-          cnxnFactory.configure(config.getClientPortAddress(),
-                                config.getMaxClientCnxns());
-  
-          quorumPeer = new QuorumPeer();
-          quorumPeer.setClientPortAddress(config.getClientPortAddress());
-          quorumPeer.setTxnFactory(new FileTxnSnapLog(
-                      new File(config.getDataLogDir()),
-                      new File(config.getDataDir())));
-          quorumPeer.setQuorumPeers(config.getServers());
-          quorumPeer.setElectionType(config.getElectionAlg());
-          quorumPeer.setMyid(config.getServerId());
-          quorumPeer.setTickTime(config.getTickTime());
-          quorumPeer.setMinSessionTimeout(config.getMinSessionTimeout());
-          quorumPeer.setMaxSessionTimeout(config.getMaxSessionTimeout());
-          quorumPeer.setInitLimit(config.getInitLimit());
-          quorumPeer.setSyncLimit(config.getSyncLimit());
-          quorumPeer.setQuorumVerifier(config.getQuorumVerifier());
-          quorumPeer.setCnxnFactory(cnxnFactory);
-          quorumPeer.setZKDatabase(new ZKDatabase(quorumPeer.getTxnFactory()));
-          quorumPeer.setLearnerType(config.getPeerType());
-  
-          quorumPeer.start();
-          quorumPeer.join();
-      } catch (InterruptedException e) {
-          // warn, but generally this is ok
-          LOG.warn("Quorum Peer interrupted", e);
-      }
+        try {
+            ManagedUtil.registerLog4jMBeans();
+        } catch (JMException e) {
+            LOG.warn("Unable to register log4j JMX control", e);
+        }
+
+        LOG.info("Starting quorum peer");
+        try {
+            /*
+             5、创建ServerCnxnFactory实例，ServerCnxnFactory从名字就可以看出其是一个工厂类，负责管理ServerCnxn，
+             ServerCnxn这个类代表了一个客户端与一个server的连接，每个客户端连接过来都会被封装成一个ServerCnxn实例用来维护了服务器与客户端之间的Socket通道。
+             首先要有监听端口，客户端连接才能过来，ServerCnxnFactory.configure()方法的核心就是启动监听端口供客户端连接进来，端口号由配置文件中clientPort属性进行配置，
+             默认是2181
+            * */
+            ServerCnxnFactory cnxnFactory = ServerCnxnFactory.createFactory();
+            cnxnFactory.configure(config.getClientPortAddress(),
+                    config.getMaxClientCnxns());
+
+            /*
+            6、初始化QuorumPeer，Quorum在Zookeeper中代表集群中大多数节点的意思，即一半以上节点，Peer是端、节点的意思，
+            Zookeeper集群中一半以上的节点其实就可以代表整个集群的状态，QuorumPeer就是管理维护的整个集群的一个核心类，
+            这一步主要是创建一个QuorumPeer实例，并进行各种初始化工作，大致代码如下
+            * */
+            quorumPeer = new QuorumPeer(); //创建QuorumPeer实例
+            quorumPeer.setClientPortAddress(config.getClientPortAddress());
+            quorumPeer.setTxnFactory(new FileTxnSnapLog(  //FileTxnSnapLog主要用于snap和transaction log的IO工具类
+                    new File(config.getDataLogDir()),
+                    new File(config.getDataDir())));
+            quorumPeer.setQuorumPeers(config.getServers());
+            quorumPeer.setElectionType(config.getElectionAlg()); //选举类型，用于确定选举算法
+            quorumPeer.setMyid(config.getServerId()); //myid用于区分不同端
+            quorumPeer.setTickTime(config.getTickTime());
+            quorumPeer.setMinSessionTimeout(config.getMinSessionTimeout());
+            quorumPeer.setMaxSessionTimeout(config.getMaxSessionTimeout());
+            quorumPeer.setInitLimit(config.getInitLimit());
+            quorumPeer.setSyncLimit(config.getSyncLimit());
+            quorumPeer.setQuorumVerifier(config.getQuorumVerifier());
+            quorumPeer.setCnxnFactory(cnxnFactory); //ServerCnxnFactory客户端请求管理工厂类
+            quorumPeer.setZKDatabase(new ZKDatabase(quorumPeer.getTxnFactory()));  //ZKDatabase维护ZK在内存中的数据结构
+            quorumPeer.setLearnerType(config.getPeerType());
+
+            /*
+            ​ 7、QuorumPeer初始化完成后执行
+            * */
+            quorumPeer.start();
+            quorumPeer.join();
+        } catch (InterruptedException e) {
+            // warn, but generally this is ok
+            LOG.warn("Quorum Peer interrupted", e);
+        }
     }
 }

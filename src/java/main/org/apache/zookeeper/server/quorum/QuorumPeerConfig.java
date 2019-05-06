@@ -156,6 +156,7 @@ public class QuorumPeerConfig {
             } else if (key.equals("syncLimit")) {
                 syncLimit = Integer.parseInt(value);
             } else if (key.equals("electionAlg")) {
+                //选举算法
                 electionAlg = Integer.parseInt(value);
             } else if (key.equals("peerType")) {
                 if (value.toLowerCase().equals("observer")) {

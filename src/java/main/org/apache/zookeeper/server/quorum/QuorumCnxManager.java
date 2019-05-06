@@ -488,6 +488,7 @@ public class QuorumCnxManager {
                             .toString());
                     ss.bind(addr);
                     while (!shutdown) {
+                        //accept接收客户端(注意：这里的客户端指的是集群中其它服务器)连接
                         Socket client = ss.accept();
                         setSockOpts(client);
                         LOG.info("Received connection request "

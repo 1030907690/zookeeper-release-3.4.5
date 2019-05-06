@@ -184,7 +184,9 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory implements Runnable 
                         selected);
                 Collections.shuffle(selectedList);
                 for (SelectionKey k : selectedList) {
-                    if ((k.readyOps() & SelectionKey.OP_ACCEPT) != 0) {
+                    if ((k.readyOps() & SelectionKey.OP_ACCEPT) != 0) { //接收ACCEPT
+                        //新连接进入，创建一个ServerCnxn封装用于维护该客户端连接
+
                         SocketChannel sc = ((ServerSocketChannel) k
                                 .channel()).accept();
                         InetAddress ia = sc.socket().getInetAddress();
@@ -204,6 +206,7 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory implements Runnable 
                             addCnxn(cnxn);
                         }
                     } else if ((k.readyOps() & (SelectionKey.OP_READ | SelectionKey.OP_WRITE)) != 0) {
+                        //客户端有读写请求时，分发到代表相应客户端ServerCnxn中，使用doIO进行处理客户端请求
                         NIOServerCnxn c = (NIOServerCnxn) k.attachment();
                         c.doIO(k);
                     } else {

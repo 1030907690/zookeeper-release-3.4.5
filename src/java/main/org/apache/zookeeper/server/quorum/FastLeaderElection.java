@@ -418,6 +418,7 @@ public class FastLeaderElection implements Election {
             Thread t = new Thread(this.ws,
                     "WorkerSender[myid=" + self.getId() + "]");
             t.setDaemon(true);
+            //启动发送消息的线程
             t.start();
 
             this.wr = new WorkerReceiver(manager);
