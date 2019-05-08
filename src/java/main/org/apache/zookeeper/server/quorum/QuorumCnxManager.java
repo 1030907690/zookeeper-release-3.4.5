@@ -547,7 +547,16 @@ public class QuorumCnxManager {
      * Thread to send messages. Instance waits on a queue, and send a message as
      * soon as there is one available. If connection breaks, then opens a new
      * one.
+
+     *线程发送消息。 实例等待队列，并发送消息为
+    *有一个可用的。 如果连接断开，则打开一个新的
+   *一个。
      */
+
+    /***
+     QuorumCnxManager中的SendWorkder线程不停轮询queueSendMap中是否存在自己要发送的数据，每个SendWorkder线程都会绑定一个sid用于标记该SendWorkder线程和哪个对端服务器进行通信，
+     因此，queueSendMap.get(sid)即可获取该线程要发送数据的queue，然后通过queue.poll()即可提取该线程要发送的数据内容
+     * */
     class SendWorker extends Thread {
         Long sid;
         Socket sock;
@@ -559,6 +568,8 @@ public class QuorumCnxManager {
          * An instance of this thread receives messages to send
          * through a queue and sends them to the server sid.
          *
+         *此线程的实例接收要发送的消息
+         *通过队列并将它们发送到服务器sid。
          * @param sock
          *            Socket to remote peer
          * @param sid
@@ -651,6 +662,19 @@ public class QuorumCnxManager {
                  * If the send queue is non-empty, then we have a recent
                  * message than that stored in lastMessage. To avoid sending
                  * stale message, we should send the message in the send queue.
+                 *
+
+                 *如果队列中没有任何内容要发送，那么我们
+         *发送lastMessage以确保最后一条消息
+         *被同行收到。 该消息可能被删除
+         *以防自己或同伴关闭他们的连接
+         *（并退出线程）在读取/处理之前
+         *最后一条消息。 正确处理重复的邮件
+         *由同行。
+         *
+         *如果发送队列非空，那么我们有一个最近的
+         *消息比存储在lastMessage中的消息。 避免发送
+         *陈旧的消息，我们应该在发送队列中发送消息。
                  */
                 ArrayBlockingQueue<ByteBuffer> bq = queueSendMap.get(sid);
                 if (bq == null || isSendQueueEmpty(bq)) {

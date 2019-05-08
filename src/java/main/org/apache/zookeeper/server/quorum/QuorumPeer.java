@@ -696,6 +696,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
             /*
              * Main loop
              */
+            //获取serverState状态后进入不同分支，当分支退出后继续下次循环
             while (running) {
                 switch (getPeerState()) {
                     case LOOKING:
@@ -748,7 +749,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
                         } else {
                             try {
                                 //选举
-                                setCurrentVote(makeLEStrategy().lookForLeader());
+                                setCurrentVote(makeLEStrategy().lookForLeader()); //调用FastLeaderElection.lookForLeader()
                             } catch (Exception e) {
                                 LOG.warn("Unexpected exception", e);
                                 setPeerState(ServerState.LOOKING);

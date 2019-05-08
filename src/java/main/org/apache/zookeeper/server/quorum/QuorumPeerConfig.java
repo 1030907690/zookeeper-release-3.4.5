@@ -136,10 +136,13 @@ public class QuorumPeerConfig {
             String key = entry.getKey().toString().trim();
             String value = entry.getValue().toString().trim();
             if (key.equals("dataDir")) {
+                //数据存储目录
                 dataDir = value;
             } else if (key.equals("dataLogDir")) {
+                //日志存储目录
                 dataLogDir = value;
             } else if (key.equals("clientPort")) {
+                //端口
                 clientPort = Integer.parseInt(value);
             } else if (key.equals("clientPortAddress")) {
                 clientPortAddress = value.trim();
@@ -159,9 +162,12 @@ public class QuorumPeerConfig {
                 //选举算法
                 electionAlg = Integer.parseInt(value);
             } else if (key.equals("peerType")) {
+                //角色类型
                 if (value.toLowerCase().equals("observer")) {
+                    //观察者 同追随者最大的区别是不参与选举
                     peerType = LearnerType.OBSERVER;
                 } else if (value.toLowerCase().equals("participant")) {
+                    //参加者 一般是追随者
                     peerType = LearnerType.PARTICIPANT;
                 } else
                 {
@@ -172,6 +178,7 @@ public class QuorumPeerConfig {
             } else if (key.equals("autopurge.purgeInterval")) {
                 purgeInterval = Integer.parseInt(value);
             } else if (key.startsWith("server.")) {
+                //配置集群
                 int dot = key.indexOf('.');
                 long sid = Long.parseLong(key.substring(dot + 1));
                 String parts[] = value.split(":");
