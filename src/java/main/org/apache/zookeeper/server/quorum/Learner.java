@@ -149,6 +149,7 @@ public class Learner {
      */
     void readPacket(QuorumPacket pp) throws IOException {
         synchronized (leaderIs) {
+            //读取数据到pp对象里
             leaderIs.readRecord(pp, "packet");
         }
         long traceMask = ZooTrace.SERVER_PACKET_TRACE_MASK;

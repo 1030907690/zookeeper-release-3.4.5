@@ -196,6 +196,7 @@ public class FastLeaderElection implements Election {
                 this.manager = manager;
             }
 
+            @Override
             public void run() {
 
                 Message response;
@@ -347,6 +348,11 @@ public class FastLeaderElection implements Election {
          * and queues it on the manager's queue.
          */
 
+        /***
+         WorkerSender线程会一直轮询提取sendqueue中的数据，当提取到ToSend数据后，会获取到集群中所有参与Leader选举节点(除Observer节点外的节点)的sid，
+         如果sid即为本机节点，则转成Notification直接放入到recvqueue中，因为本机不再需要走网络IO；否则放入到queueSendMap中，key是要发送给哪个服务器节点的sid，
+         ByteBuffer即为ToSend的内容，queueSendMap维护的着当前节点要发送的网络数据信息，由于发送到同一个sid服务器可能存在多条数据，所以queueSendMap的value是一个queue类型；
+         * */
         class WorkerSender implements Runnable {
             volatile boolean stop;
             QuorumCnxManager manager;
@@ -356,6 +362,7 @@ public class FastLeaderElection implements Election {
                 this.manager = manager;
             }
 
+            @Override
             public void run() {
                 while (!stop) {
                     try {
@@ -426,6 +433,7 @@ public class FastLeaderElection implements Election {
             t = new Thread(this.wr,
                     "WorkerReceiver[myid=" + self.getId() + "]");
             t.setDaemon(true);
+            //启动接收消息线程
             t.start();
         }
 
@@ -540,6 +548,14 @@ public class FastLeaderElection implements Election {
 
 
     private void printNotification(Notification n){
+
+        LOG.info("通知: " + n.leader + " (n.leader), 0x"
+                + Long.toHexString(n.zxid) + " (n.zxid), 0x"
+                + Long.toHexString(n.electionEpoch) + " (n.round), " + n.state
+                + " (n.state), " + n.sid + " (n.sid), 0x"
+                + Long.toHexString(n.peerEpoch) + " (n.peerEPoch), "
+                + self.getPeerState() + " (my state)");
+
         LOG.info("Notification: " + n.leader + " (n.leader), 0x"
                 + Long.toHexString(n.zxid) + " (n.zxid), 0x"
                 + Long.toHexString(n.electionEpoch) + " (n.round), " + n.state

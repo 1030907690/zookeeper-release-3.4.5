@@ -68,6 +68,7 @@ public class Follower extends Learner{
         try {
             InetSocketAddress addr = findLeader();            
             try {
+                //去连接群首节点
                 connectToLeader(addr);
                 long newEpochZxid = registerWithLeader(Leader.FOLLOWERINFO);
 
@@ -81,8 +82,10 @@ public class Follower extends Learner{
                 }
                 syncWithLeader(newEpochZxid);                
                 QuorumPacket qp = new QuorumPacket();
+                //如果QuorumPeer的running为true会一直阻塞在这儿
                 while (self.isRunning()) {
                     readPacket(qp);
+                    //LOG.info("qp.getType() " + qp.getType());
                     processPacket(qp);
                 }
             } catch (IOException e) {
@@ -108,7 +111,8 @@ public class Follower extends Learner{
      */
     protected void processPacket(QuorumPacket qp) throws IOException{
         switch (qp.getType()) {
-        case Leader.PING:            
+        case Leader.PING:
+            //ping
             ping(qp);            
             break;
         case Leader.PROPOSAL:            

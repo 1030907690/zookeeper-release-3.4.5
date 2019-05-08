@@ -718,6 +718,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
                             // changes in each of election strategy classes which is
                             // unnecessary code coupling.
                             Thread roZkMgr = new Thread() {
+                                @Override
                                 public void run() {
                                     try {
                                         // lower-bound grace period to 2 secs

@@ -40,6 +40,7 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory implements Runnable 
 
     static {
         Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+                @Override
                 public void uncaughtException(Thread t, Throwable e) {
                     LOG.error("Thread " + t + " died", e);
                 }
@@ -98,11 +99,13 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory implements Runnable 
     }
 
     /** {@inheritDoc} */
+    @Override
     public int getMaxClientCnxnsPerHost() {
         return maxClientCnxns;
     }
 
     /** {@inheritDoc} */
+    @Override
     public void setMaxClientCnxnsPerHost(int max) {
         maxClientCnxns = max;
     }
@@ -111,6 +114,7 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory implements Runnable 
     public void start() {
         // ensure thread is started once and only once
         if (thread.getState() == Thread.State.NEW) {
+            //启动线程
             thread.start();
         }
     }
@@ -172,6 +176,7 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory implements Runnable 
         }
     }
 
+    @Override
     public void run() {
         while (!ss.socket().isClosed()) {
             try {
