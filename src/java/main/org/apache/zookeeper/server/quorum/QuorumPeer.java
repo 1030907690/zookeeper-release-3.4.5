@@ -698,6 +698,20 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
              */
             //获取serverState状态后进入不同分支，当分支退出后继续下次循环
             while (running) {
+
+                /***
+                 * 节点确定了自己的角色后，就会进入自己的角色分支：对于Leader而言创建Leader实例并调用其lead()函数，对于Follower而言创建Follower实例并调用其followLeader()函数，
+                 * 对于Observer而言创建Observer实例并调用其observeLeader()函数。在这三个函数中，服务器会进行相关的初始化并完成最终的启动。
+                 *
+                 * 对于Follower和Observer而言，主要的初始化工作是要建立与Leader的连接并同步epoch信息，最后完成与Leader的数据同步。而Leader会启动LearnerCnxAcceptor线程，
+                 * 该线程会接受来自Follower和Observer（统称为Learner）的连接请求并为每个连接创建一个LearnerHandler线程，该线程会负责包括数据同步在内的与learner的一切通信。
+                 *
+                 *
+                 * Learn(Follower或Observer)节点会主动向Leader发起连接，Zookeeper就会进入集群同步阶段，集群同步主要完成集群中各节点状态信息和数据信息的一致。
+                 * 选出新的Leader后的流程大致分为：计算epoch、统一epoch、同步数据、广播模式等四个阶段。其中其前三个阶段：计算epoch、统一epoch、
+                 * 同步数据就是这一节主要介绍的集群同步阶段的主要内容，这三个阶段主要完成新Leader与集群中的节点完成同步工作，处于这个阶段的zk集群还没有真正做好对外提供服务的能力，
+                 * 可以看着是新leader上任后进行的内部沟通、前期准备工作等，只有等这三个阶段全部完成，新leader才会真正的成为leader，这时zk集群会恢复正常可运行状态并对外提供服务。
+                 * */
                 switch (getPeerState()) {
                     case LOOKING:
                         //当前节点进入Leader选举状态，执行选举分支流程
