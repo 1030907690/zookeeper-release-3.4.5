@@ -374,6 +374,20 @@ public class ZooKeeper {
      * @throws IllegalArgumentException
      *             if an invalid chroot path is specified
      */
+
+    /***
+     Zookeeper集群的服务器地址列表
+     该地址是可以填写多个的，以逗号分隔。如"127.0.0.1:2181,127.0.0.1:2182,127.0.0.1:2183",那客户端连接的时候到底是使用哪一个呢？先随机打乱，然后轮询着用，后面再详细介绍。
+
+     sessionTimeout
+     最终会引出三个时间设置：和服务器端协商后的sessionTimeout、readTimeout、connectTimeout。
+
+     服务器端使用协商后的sessionTimeout：即超过该时间后，客户端没有向服务器端发送任何请求（正常情况下客户端会每隔一段时间发送心跳请求，此时服务器端会从新计算客户端的超时时间点的），则服务器端认为session超时，清理数据。此时客户端的ZooKeeper对象就不再起作用了，需要再重新new一个新的对象了。
+     客户端使用connectTimeout、readTimeout分别用于检测连接超时和读取超时，一旦超时，则该客户端认为该服务器不稳定，就会从新连接下一个服务器地址。
+
+     Watcher
+     作为ZooKeeper对象一个默认的Watcher，用于接收一些事件通知。如和服务器连接成功的通知、断开连接的通知、Session过期的通知等。同时我们可以看到，一旦和ZooKeeper服务器连接建立成功，就会获取服务器端分配的sessionId和password
+     * */
     public ZooKeeper(String connectString, int sessionTimeout, Watcher watcher)
         throws IOException
     {
@@ -438,10 +452,20 @@ public class ZooKeeper {
         LOG.info("Initiating client connection, connectString=" + connectString
                 + " sessionTimeout=" + sessionTimeout + " watcher=" + watcher);
 
+        //第一步：为ZKWatchManager watchManager设置一个默认的Watcher
         watchManager.defaultWatcher = watcher;
 
+        //第二步：将连接字符串信息交给ConnectStringParser进行解析，连接字符串比如： "192.168.12.1:2181,192.168.12.2:2181,192.168.12.3:2181/root"
+        //得到两个数据String chrootPath默认的跟路径和ArrayList<InetSocketAddress> serverAddresses即多个host和port信息
         ConnectStringParser connectStringParser = new ConnectStringParser(
                 connectString);
+        /*
+        第三步：根据上述解析的host和port列表结果，创建一个HostProvider，有了ConnectStringParser的解析结果，
+        为什么还需要一个HostProvider再来包装下呢？主要是为将来留下扩展的余地，来看下HostProvider的详细接口介绍
+
+        HostProvider主要负责不断的对外提供可用的ZooKeeper服务器地址，这些服务器地址可以是从一个url中加载得来或者其他途径得来。
+        同时对于不同的ZooKeeper客户端，给出就近的ZooKeeper服务器地址等。
+        * */
         HostProvider hostProvider = new StaticHostProvider(
                 connectStringParser.getServerAddresses());
         cnxn = new ClientCnxn(connectStringParser.getChrootPath(),
@@ -758,6 +782,7 @@ public class ZooKeeper {
      * @throws InterruptedException if the transaction is interrupted
      * @throws IllegalArgumentException if an invalid path is specified
      */
+    //同步方式 创建node
     public String create(final String path, byte data[], List<ACL> acl,
             CreateMode createMode)
         throws KeeperException, InterruptedException
@@ -769,6 +794,7 @@ public class ZooKeeper {
 
         RequestHeader h = new RequestHeader();
         h.setType(ZooDefs.OpCode.create);
+        //ZooKeeper对象负责创建出Request，并交给ClientCnxn来执行，ZooKeeper对象再对返回结果进行处理。
         CreateRequest request = new CreateRequest();
         CreateResponse response = new CreateResponse();
         request.setData(data);
@@ -778,11 +804,16 @@ public class ZooKeeper {
             throw new KeeperException.InvalidACLException();
         }
         request.setAcl(acl);
+        /*
+       同步方式提交一个请求后：**开始循环判断该请求包的状态是否结束，即处于阻塞状态，一旦结束则继续往下走下去，返回结果。
+        * */
         ReplyHeader r = cnxn.submitRequest(h, request, response, null);
         if (r.getErr() != 0) {
             throw KeeperException.create(KeeperException.Code.get(r.getErr()),
                     clientPath);
         }
+
+        //判断是否有chrootPath路径
         if (cnxn.chrootPath == null) {
             return response.getPath();
         } else {
@@ -796,6 +827,7 @@ public class ZooKeeper {
      * @see #create(String, byte[], List, CreateMode)
      */
 
+    //异步方式创建 node
     public void create(final String path, byte data[], List<ACL> acl,
             CreateMode createMode,  StringCallback cb, Object ctx)
     {
@@ -813,6 +845,9 @@ public class ZooKeeper {
         request.setFlags(createMode.toFlag());
         request.setPath(serverPath);
         request.setAcl(acl);
+        /*
+        异步方式则提交一个请求后：**直接返回，对结果的处理逻辑包含在回调函数中。一旦对该请求包响应完毕，则取出回调函数执行相应的回调方法。
+        * */
         cnxn.queuePacket(h, r, request, response, cb, clientPath,
                 serverPath, ctx, null);
     }
@@ -1765,7 +1800,14 @@ public class ZooKeeper {
         return cnxn.sendThread.getClientCnxnSocket().getLocalSocketAddress();
     }
 
+    /*
+    首先是通过getClientCnxnSocket()获取一个ClientCnxnSocket。来看下ClientCnxnSocket是主要做什么工作的，专门用于负责socket通信的，
+    把一些公共部分抽象出来，其他的留给不同的实现者来实现。如可以选择默认的ClientCnxnSocketNIO，也可以使用netty等
+    * */
     private static ClientCnxnSocket getClientCnxnSocket() throws IOException {
+        /*
+        首先获取系统参数"zookeeper.clientCnxnSocket",如果没有的话，使用默认的ClientCnxnSocketNIO，所以我们可以通过指定该参数来替换默认的实现。
+        * */
         String clientCnxnSocketName = System
                 .getProperty(ZOOKEEPER_CLIENT_CNXN_SOCKET);
         if (clientCnxnSocketName == null) {

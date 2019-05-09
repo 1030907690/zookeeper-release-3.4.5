@@ -38,11 +38,14 @@ public final class StaticHostProvider implements HostProvider {
     private static final Logger LOG = LoggerFactory
             .getLogger(StaticHostProvider.class);
 
+    //服务器地址列表
     private final List<InetSocketAddress> serverAddresses = new ArrayList<InetSocketAddress>(
             5);
 
+    //标记
     private int lastIndex = -1;
 
+    //标记
     private int currentIndex = -1;
 
     /**
@@ -69,13 +72,16 @@ public final class StaticHostProvider implements HostProvider {
             throw new IllegalArgumentException(
                     "A HostProvider may not be empty!");
         }
+        //打乱顺序
         Collections.shuffle(this.serverAddresses);
     }
 
+    @Override
     public int size() {
         return serverAddresses.size();
     }
 
+    @Override
     public InetSocketAddress next(long spinDelay) {
         ++currentIndex;
         if (currentIndex == serverAddresses.size()) {
@@ -95,6 +101,7 @@ public final class StaticHostProvider implements HostProvider {
         return serverAddresses.get(currentIndex);
     }
 
+    @Override
     public void onConnected() {
         lastIndex = currentIndex;
     }

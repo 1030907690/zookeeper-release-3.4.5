@@ -47,6 +47,7 @@ public final class ConnectStringParser {
      */
     public ConnectStringParser(String connectString) {
         // parse out chroot, if any
+        //解析chroot路径，如果有的话;指特定的路径
         int off = connectString.indexOf('/');
         if (off >= 0) {
             String chrootPath = connectString.substring(off);
@@ -62,12 +63,14 @@ public final class ConnectStringParser {
             this.chrootPath = null;
         }
 
+        //分割连接地址列表
         String hostsList[] = connectString.split(",");
         for (String host : hostsList) {
             int port = DEFAULT_PORT;
             int pidx = host.lastIndexOf(':');
             if (pidx >= 0) {
                 // otherwise : is at the end of the string, ignore
+                //否则：在字符串的末尾，忽略
                 if (pidx < host.length() - 1) {
                     port = Integer.parseInt(host.substring(pidx + 1));
                 }

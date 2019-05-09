@@ -194,6 +194,7 @@ public class NIOServerCnxnFactory extends ServerCnxnFactory implements Runnable 
 
                         SocketChannel sc = ((ServerSocketChannel) k
                                 .channel()).accept();
+                        //防止来自一个IP的连接是否过多
                         InetAddress ia = sc.socket().getInetAddress();
                         int cnxncount = getClientCnxnCount(ia);
                         if (maxClientCnxns > 0 && cnxncount >= maxClientCnxns){
