@@ -9,6 +9,7 @@ import org.apache.zookeeper.*;
  * @Description: java api
  * @date 2019/5/7 10:04
  */
+@Deprecated
 public class ZookeeperClient {
 
 
