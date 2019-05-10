@@ -17,18 +17,18 @@ public class ZookeeperClient {
      *   watch机制官方说明：一个Watch事件是一个一次性的触发器，当被设置了Watch的数据发生了改变的时候，则服务器将这个改变发送给设置了Watch的客户端，以便通知它们。
     *  可以注册watcher的方法：getData、exists、getChildren。
     * */
-
+    private  ZooKeeper zk;
 
     public void initialize(){
         try {
             // 创建一个与服务器的连接
-            ZooKeeper zk = new ZooKeeper("localhost:2181",
+            zk = new ZooKeeper("localhost:2181",
                     20000, new Watcher() {
                 // 监控所有被触发的事件
                 @Override
                 public void process(WatchedEvent event) {
                         System.out.println("已经触发了" + event.getType() + "事件！" + event.toString() + " path: " + event.getPath() + " getWrapper : "+ event.getWrapper() );
-
+                    System.out.println("zk : " + zk);
                 }
             });
 

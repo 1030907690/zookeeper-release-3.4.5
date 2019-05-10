@@ -410,6 +410,15 @@ public class ClientCnxn {
     }
 
     public void start() {
+        /*
+        其中,SendThread 负责将ZooKeeper的请求信息封装成一个Packet，发送给 Server ,并维持同Server的心跳，EventThread负责解析通过通过SendThread得到的Response，
+        之后发送给Watcher::processEvent进行详细的事件处理。
+
+            如上图所示，Client中在终端输入指令后，会被封装成一个Request请求，通过submitRequest，进一步被封装成Packet包，提交给SendThread处理。
+    SendThread通过doTransport将Packet发送给Server,并通过readResponse获取结果，解析成一个Event，再将Event加入EventThread的队列中等待执行。
+    EventThread通过processEvent消费队列中的Event事件。
+
+        * */
         sendThread.start();
         eventThread.start();
     }
@@ -468,6 +477,8 @@ public class ClientCnxn {
         queueEvent queuePacket  queueEventOfDeath
         * */
         public void queueEvent(WatchedEvent event) {
+            LOG.info("添加队列事件类型 [ {} ]", event.getType());
+
             if (event.getType() == EventType.None
                     && sessionState == event.getState()) {
                 return;
@@ -480,6 +491,7 @@ public class ClientCnxn {
                             event.getPath()),
                     event);
             // queue the pair (watch set & event) for later processing
+            //添加等待处理的时间
             waitingEvents.add(pair);
         }
 
@@ -725,6 +737,9 @@ public class ClientCnxn {
         private Random r = new Random(System.nanoTime());
         private boolean isFirstConnect = true;
 
+        /*
+        在readReponse中,通过解析数据，我们可以得到WatchedEvent对象，并将其压入EventThread的消息队列，等待分发
+        * */
         void readResponse(ByteBuffer incomingBuffer) throws IOException {
             ByteBufferInputStream bbis = new ByteBufferInputStream(
                     incomingBuffer);
@@ -785,6 +800,7 @@ public class ClientCnxn {
                             + Long.toHexString(sessionId));
                 }
 
+                //将事件加入队列
                 eventThread.queueEvent(we);
                 return;
             }
@@ -1018,9 +1034,12 @@ public class ClientCnxn {
                         if (closing || !state.isAlive()) {
                             break;
                         }
+                        // 启动和server的socket链接
                         startConnect();
                         clientCnxnSocket.updateLastSendAndHeard();
                     }
+
+                    // 根据上次的连接时间，判断是否超时
 
                     if (state.isConnected()) {
                         // determine whether we need to send an AuthFailed event.
@@ -1070,6 +1089,7 @@ public class ClientCnxn {
                         int timeToNextPing = readTimeout / 2
                                 - clientCnxnSocket.getIdleSend();
                         if (timeToNextPing <= 0) {
+                            // 发送心跳包
                             sendPing();
                             clientCnxnSocket.updateLastSend();
                         } else {
@@ -1093,6 +1113,7 @@ public class ClientCnxn {
                         to = Math.min(to, pingRwTimeout - idlePingRwServer);
                     }
 
+                    // 将指令信息发送给 Server
                     clientCnxnSocket.doTransport(to, pendingQueue, outgoingQueue, ClientCnxn.this);
                 } catch (Throwable e) {
                     if (closing) {
@@ -1142,6 +1163,16 @@ public class ClientCnxn {
             }
             ZooTrace.logTraceMessage(LOG, ZooTrace.getTextTraceLevel(),
                     "SendThread exitedloop.");
+
+
+            /*
+            从上面的代码中，可以看出SendThread的主要任务如下:
+                创建同 Server 之间的 socket 链接
+                判断链接是否超时
+                定时发送心跳任务
+                将ZooKeeper指令发送给Server
+            * */
+
         }
 
         private void pingRwServer() throws RWServerFoundException {
@@ -1239,6 +1270,7 @@ public class ClientCnxn {
                     + (isRO ? " (READ-ONLY mode)" : ""));
             KeeperState eventState = (isRO) ?
                     KeeperState.ConnectedReadOnly : KeeperState.SyncConnected;
+            //发送和客户端的连接事件
             eventThread.queueEvent(new WatchedEvent(
                     Watcher.Event.EventType.None,
                     eventState, null));
@@ -1326,17 +1358,29 @@ public class ClientCnxn {
         return xid++;
     }
 
+    /*
+    在submitRequest中，我们进一步看到Request被封装成一个Packet包，并加入SendThread::outgoingQueue队列中，等待执行
+
+    Note:在这里我们还看到，ZooKeeper方法中所谓的同步方法其实就是在Packet被提交到SendThread之后，陷入一个while循环，等待处理完成后再跳出的过程
+
+    在SendThread::run的while循环中，ZooKeeper通过doTransport将存放在outgoingQueue中的Packet包发送给 Server。
+
+    * */
     public ReplyHeader submitRequest(RequestHeader h, Record request,
                                      Record response, WatchRegistration watchRegistration)
             throws InterruptedException {
+        // 新生响应头
         ReplyHeader r = new ReplyHeader();
+        // 新生Packet包
         Packet packet = queuePacket(h, r, request, response, null, null, null,
                 null, watchRegistration);
-        synchronized (packet) {
-            while (!packet.finished) {
+        synchronized (packet) { // 同步
+            while (!packet.finished) { // 如果没有结束
+                // 则等待
                 packet.wait();
             }
         }
+        // 返回响应头
         return r;
     }
 

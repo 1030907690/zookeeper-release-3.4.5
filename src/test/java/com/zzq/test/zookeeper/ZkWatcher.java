@@ -1,3 +1,4 @@
+/*
 package com.zzq.test.zookeeper;
 
 import org.apache.zookeeper.*;
@@ -7,13 +8,16 @@ import java.io.UnsupportedEncodingException;
 import java.util.List;
 import java.util.Map;
 
+*/
 /**
  * @author Zhou Zhong Qing
  * @Title: ${file_name}
  * @Package ${package_name}
  * @Description: ${todo}
  * @date 2019/5/7 14:37
- */
+ *//*
+
+@Deprecated
 public class ZkWatcher implements Watcher {
 
     private ConfigureContainer configureContainer;
@@ -112,3 +116,4 @@ public class ZkWatcher implements Watcher {
 
 
 }
+*/

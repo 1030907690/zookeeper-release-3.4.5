@@ -24,9 +24,7 @@ public class ConfigureContainer {
         this.zooKeeper = zooKeeper;
     }
 
-    public ZooKeeper getZooKeeper() {
-        return zooKeeper;
-    }
+
 
     public Map<String, String> getConfig() {
         return config;

@@ -78,6 +78,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
                     recvCount++;
                     readLength();
                 } else if (!initialized) {
+                    //读取连接结果
                     readConnectResult();
                     enableRead();
                     if (findSendablePacket(outgoingQueue,
@@ -91,6 +92,9 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
                     updateLastHeard();
                     initialized = true;
                 } else {
+                    //其他的事件 目前看到修改时会进入
+                    // 读取response信息
+                    //在doIO发送socket信息之前，先从socket中获取返回数据，通过readResonse进行处理。
                     sendThread.readResponse(incomingBuffer);
                     lenBuffer.clear();
                     incomingBuffer = lenBuffer;
@@ -352,6 +356,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
                     sendThread.primeConnection();
                 }
             } else if ((k.readyOps() & (SelectionKey.OP_READ | SelectionKey.OP_WRITE)) != 0) {
+                //处理io
                 doIO(pendingQueue, outgoingQueue, cnxn);
             }
         }

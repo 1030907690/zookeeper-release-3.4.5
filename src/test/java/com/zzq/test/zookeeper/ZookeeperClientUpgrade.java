@@ -6,11 +6,9 @@ import org.apache.zookeeper.*;
 import org.apache.zookeeper.data.ACL;
 import org.apache.zookeeper.data.Stat;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author Zhou Zhong Qing
@@ -19,7 +17,7 @@ import java.util.List;
  * @Description: java api 永久监听
  * @date 2019/5/7 10:04
  */
-public class ZookeeperClientUpgrade {
+public class ZookeeperClientUpgrade implements Watcher{
 
 
     private ZooKeeper zooKeeper;
@@ -31,12 +29,89 @@ public class ZookeeperClientUpgrade {
         this.configureContainer = configureContainer;
     }
 
+
+
+    @Override
+    public void process(WatchedEvent event) {
+        try {
+
+            if (event.getState() == Event.KeeperState.SyncConnected) {
+                //System.out.println("watcher received event");
+            }
+            if (Event.EventType.None == event.getType()) {
+                System.out.println("连接建立...");
+            }
+            System.out.println("回调watcher1实例： 路径" + event.getPath() + " 类型：" + event.getType());
+            // 事件类型，状态，和检测的路径
+            Event.EventType eventType = event.getType();
+            Event.KeeperState state = event.getState();
+            String watchPath = event.getPath();
+            switch (eventType) {
+                case None:
+                    break;
+                case NodeDeleted:
+                    exists(event.getPath(), true);
+                    configureContainer.getConfig().remove(event.getPath());
+                    break;
+                case NodeCreated:
+                    exists(event.getPath(), true);
+                    configureContainer.getConfig().put(event.getPath(), new String(getData(event.getPath()), "UTF-8"));
+                    break;
+                case NodeDataChanged:
+                    exists(event.getPath(), true);
+                    configureContainer.getConfig().put(event.getPath(), new String(getData(event.getPath()), "UTF-8"));
+                    break;
+                case NodeChildrenChanged:
+                    try {
+                        //处理收到的消息
+                        handleMessage(watchPath);
+                    } catch (UnsupportedEncodingException e) {
+                        e.printStackTrace();
+                    } catch (KeeperException e) {
+                        e.printStackTrace();
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    break;
+                default:
+                    break;
+            }
+
+            for (Map.Entry<String, String> entry : configureContainer.getConfig().entrySet()) {
+                System.out.println(" key: " + entry.getKey() + " value :" + entry.getValue());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+
+
+
+    public void handleMessage(String watchPath) throws KeeperException, InterruptedException, UnsupportedEncodingException {
+        System.out.println("收到消息");
+        //再监听该子节点
+        List<String> children = getChildren(watchPath);
+        for (String a : children) {
+            String childrenPath = watchPath + "/" + a;
+            byte[] recivedata = getData(childrenPath);
+            String recString = new String(recivedata, "UTF-8");
+            System.out.println("receive the path:" + childrenPath + ":data:" + recString);
+        }
+    }
+
+    public List<String> getChildren(String path) throws KeeperException, InterruptedException {
+        //监听该节点子节点的变化情况
+        return zooKeeper.getChildren(path, this);
+    }
+
+
     /***
      * 初始化
      * */
     public void initialize() {
         try {
-            zooKeeper = new ZooKeeper("localhost:2181", 20000, new ZkWatcher(configureContainer));
+            zooKeeper = new ZooKeeper("localhost:2181", 20000, this);
             configureContainer.setZooKeeper(zooKeeper);
             doLoadZNodeData();
         } catch (Exception e) {

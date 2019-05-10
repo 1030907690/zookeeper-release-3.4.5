@@ -128,10 +128,13 @@ public class ZooKeeper {
      * API.
      */
     private static class ZKWatchManager implements ClientWatchManager {
+        // 数据变化的Watchers
         private final Map<String, Set<Watcher>> dataWatches =
             new HashMap<String, Set<Watcher>>();
+        // 节点存在与否的Watchers
         private final Map<String, Set<Watcher>> existWatches =
             new HashMap<String, Set<Watcher>>();
+        // 子节点变化的Watchers
         private final Map<String, Set<Watcher>> childWatches =
             new HashMap<String, Set<Watcher>>();
 
@@ -152,64 +155,77 @@ public class ZooKeeper {
                                         Watcher.Event.EventType type,
                                         String clientPath)
         {
+            // 新生成结果Watcher集合
             Set<Watcher> result = new HashSet<Watcher>();
 
-            switch (type) {
-            case None:
+            switch (type) {  // 确定事件类型
+            case None: // 无类型
+                //添加watcher
+                // 添加默认Watcher
                 result.add(defaultWatcher);
+                // 是否需要清空(提取对zookeeper.disableAutoWatchReset字段进行配置的值、Zookeeper的状态是否为同步连接)
                 boolean clear = ClientCnxn.getDisableAutoResetWatch() &&
                         state != Watcher.Event.KeeperState.SyncConnected;
 
-                synchronized(dataWatches) {
+                synchronized(dataWatches) {  // 同步块
                     for(Set<Watcher> ws: dataWatches.values()) {
+                        // 添加至结果集合
                         result.addAll(ws);
                     }
-                    if (clear) {
+                    if (clear) {  // 是否需要清空
                         dataWatches.clear();
                     }
                 }
 
-                synchronized(existWatches) {
+                synchronized(existWatches) { // 同步块
                     for(Set<Watcher> ws: existWatches.values()) {
+                        // 添加至结果集合
                         result.addAll(ws);
                     }
-                    if (clear) {
+                    if (clear) { // 是否需要清空
                         existWatches.clear();
                     }
                 }
 
-                synchronized(childWatches) {
+                synchronized(childWatches) { // 同步块
                     for(Set<Watcher> ws: childWatches.values()) {
+                        // 添加至结果集合
                         result.addAll(ws);
                     }
-                    if (clear) {
+                    if (clear) { // 是否需要清空
                         childWatches.clear();
                     }
                 }
 
                 return result;
-            case NodeDataChanged:
-            case NodeCreated:
+            case NodeDataChanged:  // 节点数据变化
+            case NodeCreated:  // 创建节点
                 synchronized (dataWatches) {
+                    // 移除clientPath对应的Watcher后全部添加至结果集合
                     addTo(dataWatches.remove(clientPath), result);
                 }
                 synchronized (existWatches) {
+                    // 移除clientPath对应的Watcher后全部添加至结果集合
                     addTo(existWatches.remove(clientPath), result);
                 }
                 break;
-            case NodeChildrenChanged:
+            case NodeChildrenChanged: // 节点子节点变化
                 synchronized (childWatches) {
+                    // 移除clientPath对应的Watcher后全部添加至结果集合
                     addTo(childWatches.remove(clientPath), result);
                 }
                 break;
-            case NodeDeleted:
+            case NodeDeleted:  // 删除节点
                 synchronized (dataWatches) {
+                    // 移除clientPath对应的Watcher后全部添加至结果集合
                     addTo(dataWatches.remove(clientPath), result);
                 }
                 // XXX This shouldn't be needed, but just in case
                 synchronized (existWatches) {
+                    // 移除clientPath对应的Watcher
                     Set<Watcher> list = existWatches.remove(clientPath);
                     if (list != null) {
+                        // 移除clientPath对应的Watcher后全部添加至结果集合
                         addTo(existWatches.remove(clientPath), result);
                         LOG.warn("We are triggering an exists watch for delete! Shouldn't happen!");
                     }
@@ -788,35 +804,48 @@ public class ZooKeeper {
         throws KeeperException, InterruptedException
     {
         final String clientPath = path;
+        // 验证路径是否合法
         PathUtils.validatePath(clientPath, createMode.isSequential());
 
+        // 添加根空间
         final String serverPath = prependChroot(clientPath);
 
+        // 新生请求头
         RequestHeader h = new RequestHeader();
+
+        // 设置请求头类型
         h.setType(ZooDefs.OpCode.create);
         //ZooKeeper对象负责创建出Request，并交给ClientCnxn来执行，ZooKeeper对象再对返回结果进行处理。
         CreateRequest request = new CreateRequest();
+        // 新生创建节点响应
         CreateResponse response = new CreateResponse();
+        // 设置请求的数据
         request.setData(data);
+        // 设置请求对应的Flag
         request.setFlags(createMode.toFlag());
+        // 设置服务器路径
         request.setPath(serverPath);
-        if (acl != null && acl.size() == 0) {
+        if (acl != null && acl.size() == 0) {  // ACL不为空但是大小为0，抛出异常
             throw new KeeperException.InvalidACLException();
         }
+        // 设置请求的ACL列表
         request.setAcl(acl);
         /*
        同步方式提交一个请求后：**开始循环判断该请求包的状态是否结束，即处于阻塞状态，一旦结束则继续往下走下去，返回结果。
         * */
+        // 提交请求
         ReplyHeader r = cnxn.submitRequest(h, request, response, null);
-        if (r.getErr() != 0) {
+        if (r.getErr() != 0) {  // 请求的响应的错误码不为0，则抛出异常
             throw KeeperException.create(KeeperException.Code.get(r.getErr()),
                     clientPath);
         }
 
         //判断是否有chrootPath路径
         if (cnxn.chrootPath == null) {
+            // 则返回响应中的路径
             return response.getPath();
         } else {
+            // 除去根空间后返回
             return response.getPath().substring(cnxn.chrootPath.length());
         }
     }
