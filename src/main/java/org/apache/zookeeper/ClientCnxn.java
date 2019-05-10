@@ -419,6 +419,11 @@ public class ClientCnxn {
     EventThread通过processEvent消费队列中的Event事件。
 
         * */
+
+        /**
+         *   send线程完成发送request，接受response，生成event
+         *   event线程派发event
+         */
         sendThread.start();
         eventThread.start();
     }
@@ -491,7 +496,7 @@ public class ClientCnxn {
                             event.getPath()),
                     event);
             // queue the pair (watch set & event) for later processing
-            //添加等待处理的时间
+            //添加等待处理的事件
             waitingEvents.add(pair);
         }
 
@@ -513,6 +518,8 @@ public class ClientCnxn {
             waitingEvents.add(eventOfDeath);
         }
 
+
+        //在EventThread中通过processEvent对队列中的事件进行消费，并分发给不同的Watcher
         @Override
         public void run() {
             try {
@@ -801,6 +808,7 @@ public class ClientCnxn {
                 }
 
                 //将事件加入队列
+                //在readReponse中,通过解析数据，我们可以得到WatchedEvent对象，并将其压入EventThread的消息队列，等待分发
                 eventThread.queueEvent(we);
                 return;
             }
@@ -856,6 +864,7 @@ public class ClientCnxn {
                             + Long.toHexString(sessionId) + ", packet:: " + packet);
                 }
             } finally {
+                //完成
                 finishPacket(packet);
             }
         }
@@ -1078,6 +1087,7 @@ public class ClientCnxn {
                         to = connectTimeout - clientCnxnSocket.getIdleRecv();
                     }
 
+                    //3、如果waitTimeOut超时，抛出SessionTimeoutException
                     if (to <= 0) {
                         throw new SessionTimeoutException(
                                 "Client session timed out, have not heard from server in "
@@ -1108,6 +1118,7 @@ public class ClientCnxn {
                             idlePingRwServer = 0;
                             pingRwTimeout =
                                     Math.min(2 * pingRwTimeout, maxPingRwTimeout);
+                            //5、如果是只读模式
                             pingRwServer();
                         }
                         to = Math.min(to, pingRwTimeout - idlePingRwServer);
@@ -1145,6 +1156,7 @@ public class ClientCnxn {
                         }
                         cleanup();
                         if (state.isAlive()) {
+                            //发送Disconnected事件
                             eventThread.queueEvent(new WatchedEvent(
                                     Event.EventType.None,
                                     Event.KeeperState.Disconnected,
@@ -1157,6 +1169,7 @@ public class ClientCnxn {
             }
             cleanup();
             clientCnxnSocket.close();
+            //如果alive状态发送Disconnected事件
             if (state.isAlive()) {
                 eventThread.queueEvent(new WatchedEvent(Event.EventType.None,
                         Event.KeeperState.Disconnected, null));

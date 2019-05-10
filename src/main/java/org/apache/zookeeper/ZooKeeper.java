@@ -266,6 +266,10 @@ public class ZooKeeper {
          */
         public void register(int rc) {
             if (shouldAddWatch(rc)) {
+                /*
+                在 ZooKeeper 中一共有三种类型的WatchRegistration，分别对应DataWatchRegistration,ChildWatchRegistration,ExistWatchRegistration。
+                并在ZKWatchManager类中根据每种类型的WatchRegistration,分别有一张map表负责存放。
+                * */
                 Map<String, Set<Watcher>> watches = getWatches(rc);
                 synchronized(watches) {
                     Set<Watcher> watchers = watches.get(clientPath);
@@ -1077,11 +1081,18 @@ public class ZooKeeper {
      * @throws InterruptedException If the server transaction is interrupted.
      * @throws IllegalArgumentException if an invalid path is specified
      */
+
+    /*
+    通常在ZooKeeper中，我们会为指定节点添加一个Watcher，用于监听节点变化情况，以ZooKeeper:exist为例
+    * */
     public Stat exists(final String path, Watcher watcher)
         throws KeeperException, InterruptedException
     {
         final String clientPath = path;
         PathUtils.validatePath(clientPath);
+
+        /*代码的大致逻辑和create类似，但是对wathcer做了一层ExistWatchRegistration的包装，当packet对象完成请求之后，调用register方法，
+        根据不同包装的WatchRegistration将watch注册到不同watch列表中，等待回调*/
 
         // the watch contains the un-chroot path
         WatchRegistration wcb = null;
