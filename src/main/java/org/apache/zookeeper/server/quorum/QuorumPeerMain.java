@@ -76,9 +76,12 @@ public class QuorumPeerMain {
      */
     //1.Zookeeper启动类是QuorumPeerMain，并将配置文件通过args参数方式传入
     public static void main(String[] args) {
-        String configPathPrefix = "F:\\work\\zookeeper-release-3.4.5\\conf\\";
+
         //为了方便debug 增加cfg路径 2019年5月6日11:47:08
         if (args.length < 1) {
+
+            String configPathPrefix = QuorumPeerMain.class.getResource("/").getPath().replace("/target/classes/","/conf/");
+
             args = new String[1];
             args[0] = configPathPrefix + "zoo_sample.cfg";
 
