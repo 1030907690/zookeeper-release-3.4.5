@@ -150,6 +150,7 @@ public class QuorumPeerConfig {
             } else if (key.equals("tickTime")) {
                 tickTime = Integer.parseInt(value);
             } else if (key.equals("maxClientCnxns")) {
+                //设置zookeeper运行单个客户端机器的最大连接数 ,否则返回错误   LOG.warn("Too many connections from " + ia  + " - max is " + maxClientCnxns );
                 maxClientCnxns = Integer.parseInt(value);
             } else if (key.equals("minSessionTimeout")) {
                 minSessionTimeout = Integer.parseInt(value);
