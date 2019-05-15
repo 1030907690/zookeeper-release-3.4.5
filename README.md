@@ -7,4 +7,4 @@ get src="http://ufpr.dl.sourceforge.net/project/ant-eclipse/ant-eclipse/1.0/ant-
 
 
 
-# 改造成了maven项目  可直接运行 src/main/java/org/apache/zookeeper/server/quorum/QuorumPeerMain ,注意需要建data目录
+# 改造成了maven项目  可直接运行 src/main/java/org/apache/zookeeper/server/quorum/QuorumPeerMain ,注意需要建data目录,conf里面目前配置的是集群环境
