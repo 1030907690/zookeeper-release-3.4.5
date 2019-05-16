@@ -657,6 +657,7 @@ public class ClientCnxn {
 
     private void finishPacket(Packet p) {
         if (p.watchRegistration != null) {
+            //注册监听
             p.watchRegistration.register(p.replyHeader.getErr());
         }
 

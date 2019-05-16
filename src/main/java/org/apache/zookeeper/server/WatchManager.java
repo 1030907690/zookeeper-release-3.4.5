@@ -35,6 +35,10 @@ import org.apache.zookeeper.Watcher.Event.KeeperState;
  * This class manages watches. It allows watches to be associated with a string
  * and removes watchers and their watches in addition to managing triggers.
  */
+//WatchManager是zookeeper服务端watcher的管理者 其内部管理的watchTable和watch2Paths两个存储结构,分别从两个维度对watcher进行存储。
+// watchTable 是从数据节点路径的粒度来托管watcher
+//  watch2Paths 是从watcher的粒度来控制事件触发需要触发的数据节点
+
 public class WatchManager {
     private static final Logger LOG = LoggerFactory.getLogger(WatchManager.class);
 

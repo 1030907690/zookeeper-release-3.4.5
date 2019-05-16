@@ -290,6 +290,7 @@ public class FinalRequestProcessor implements RequestProcessor {
                         ZooDefs.Perms.READ,
                         request.authInfo);
                 Stat stat = new Stat();
+                //如果getDataRequest.getWatch() 为tru时 zookeeper就认为当前客户端请求需要进行Watcher注册,将当前ServerCnxn传入
                 byte b[] = zks.getZKDatabase().getData(getDataRequest.getPath(), stat,
                         getDataRequest.getWatch() ? cnxn : null);
                 rsp = new GetDataResponse(b, stat);

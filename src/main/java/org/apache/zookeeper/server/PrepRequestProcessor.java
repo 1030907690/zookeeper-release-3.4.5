@@ -310,8 +310,9 @@ public class PrepRequestProcessor extends Thread implements RequestProcessor {
             case OpCode.create:                
                 zks.sessionTracker.checkSession(request.sessionId, request.getOwner());
                 CreateRequest createRequest = (CreateRequest)record;   
-                if(deserialize)
+                if(deserialize) {
                     ByteBufferInputStream.byteBuffer2Record(request.request, createRequest);
+                }
                 String path = createRequest.getPath();
                 int lastSlash = path.lastIndexOf('/');
                 if (lastSlash == -1 || path.indexOf('\0') != -1 || failCreate) {
@@ -370,8 +371,9 @@ public class PrepRequestProcessor extends Thread implements RequestProcessor {
             case OpCode.delete:
                 zks.sessionTracker.checkSession(request.sessionId, request.getOwner());
                 DeleteRequest deleteRequest = (DeleteRequest)record;
-                if(deserialize)
+                if(deserialize) {
                     ByteBufferInputStream.byteBuffer2Record(request.request, deleteRequest);
+                }
                 path = deleteRequest.getPath();
                 lastSlash = path.lastIndexOf('/');
                 if (lastSlash == -1 || path.indexOf('\0') != -1
@@ -400,14 +402,18 @@ public class PrepRequestProcessor extends Thread implements RequestProcessor {
             case OpCode.setData:
                 zks.sessionTracker.checkSession(request.sessionId, request.getOwner());
                 SetDataRequest setDataRequest = (SetDataRequest)record;
-                if(deserialize)
+                if(deserialize) {
                     ByteBufferInputStream.byteBuffer2Record(request.request, setDataRequest);
+                }
                 path = setDataRequest.getPath();
                 nodeRecord = getRecordForPath(path);
                 checkACL(zks, nodeRecord.acl, ZooDefs.Perms.WRITE,
                         request.authInfo);
+                //进行版本检查
                 version = setDataRequest.getVersion();
+                //从记录中获取currentVersion
                 int currentVersion = nodeRecord.stat.getVersion();
+                //如果请求的version为-1，那么说明客户端并不要求使用乐观锁，可以忽略版本比对；如果不是-1,如果version不等于currentVersion抛出异常
                 if (version != -1 && version != currentVersion) {
                     throw new KeeperException.BadVersionException(path);
                 }
