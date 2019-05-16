@@ -84,6 +84,7 @@ public final class StaticHostProvider implements HostProvider {
     @Override
     public InetSocketAddress next(long spinDelay) {
         ++currentIndex;
+        //如果已经超过,置为0,取第一个
         if (currentIndex == serverAddresses.size()) {
             currentIndex = 0;
         }

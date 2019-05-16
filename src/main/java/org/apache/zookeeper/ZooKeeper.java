@@ -87,6 +87,7 @@ public class ZooKeeper {
 
     public static final String ZOOKEEPER_CLIENT_CNXN_SOCKET = "zookeeper.clientCnxnSocket";
 
+    //客户端核心线程,其内部又包含 两个线程，即SendThread和EventThread。前者是一个I/O线程，主要负责zookeeper客户端和服务端之间的网络I/O通信，后者是一个事件线程，主要负责对服务端事件进行处理。
     protected final ClientCnxn cnxn;
     private static final Logger LOG;
     static {
@@ -127,6 +128,8 @@ public class ZooKeeper {
      * the public methods will not be exposed as part of the ZooKeeper client
      * API.
      */
+
+    //客户端watcher管理器
     private static class ZKWatchManager implements ClientWatchManager {
         // 数据变化的Watchers
         private final Map<String, Set<Watcher>> dataWatches =
@@ -486,6 +489,7 @@ public class ZooKeeper {
         HostProvider主要负责不断的对外提供可用的ZooKeeper服务器地址，这些服务器地址可以是从一个url中加载得来或者其他途径得来。
         同时对于不同的ZooKeeper客户端，给出就近的ZooKeeper服务器地址等。
         * */
+        //如果需要动态的更新服务器列表 可以想办法替换掉StaticHostProvider
         HostProvider hostProvider = new StaticHostProvider(
                 connectStringParser.getServerAddresses());
         cnxn = new ClientCnxn(connectStringParser.getChrootPath(),
