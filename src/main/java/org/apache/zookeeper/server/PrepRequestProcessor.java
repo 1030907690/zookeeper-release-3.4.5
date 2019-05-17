@@ -740,11 +740,14 @@ public class PrepRequestProcessor extends Thread implements RequestProcessor {
         return acl.size() > 0;
     }
 
+    @Override
     public void processRequest(Request request) {
         // request.addRQRec(">prep="+zks.outstandingChanges.size());
+        //添加进入请求队列
         submittedRequests.add(request);
     }
 
+    @Override
     public void shutdown() {
         LOG.info("Shutting down");
         submittedRequests.clear();
