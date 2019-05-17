@@ -548,6 +548,7 @@ public class FastLeaderElection implements Election {
                         " (n.round), " + sid + " (recipient), " + self.getId() +
                         " (myid), 0x" + Long.toHexString(proposedEpoch) + " (n.peerEpoch)");
             }
+            // zookeeper会将刚刚初始化好的选票放入sendqueue中，由发送器WorkerSender负责发送出去。
             sendqueue.offer(notmsg);
         }
     }
@@ -624,9 +625,16 @@ public class FastLeaderElection implements Election {
      * @param l     Identifier of the vote received last
      * @param zxid  zxid of the the vote received last
      */
+
+
     private boolean termPredicate(
             HashMap<Long, Vote> votes,
             Vote vote) {
+
+
+        /*
+        判断自己接收到选出来的leader在投票集合中判断一下，有没有超过半数都认可当前内部投票,如果超过了就选出了。
+        * */
 
         HashSet<Long> set = new HashSet<Long>();
 
@@ -705,9 +713,11 @@ public class FastLeaderElection implements Election {
      */
     private ServerState learningState() {
         if (self.getLearnerType() == LearnerType.PARTICIPANT) {
+            LOG.info("我是一个参与者： " + self.getId());
             LOG.debug("I'm a participant: " + self.getId());
             return ServerState.FOLLOWING;
         } else {
+            LOG.info("我是一个观察者： " + self.getId());
             LOG.debug("I'm an observer: " + self.getId());
             return ServerState.OBSERVING;
         }
@@ -719,9 +729,11 @@ public class FastLeaderElection implements Election {
      * @return long
      */
     private long getInitId() {
-        if (self.getLearnerType() == LearnerType.PARTICIPANT)
+        if (self.getLearnerType() == LearnerType.PARTICIPANT) {
             return self.getId();
-        else return Long.MIN_VALUE;
+        } else {
+            return Long.MIN_VALUE;
+        }
     }
 
     /**
@@ -730,9 +742,11 @@ public class FastLeaderElection implements Election {
      * @return long
      */
     private long getInitLastLoggedZxid() {
-        if (self.getLearnerType() == LearnerType.PARTICIPANT)
+        if (self.getLearnerType() == LearnerType.PARTICIPANT) {
             return self.getLastLoggedZxid();
-        else return Long.MIN_VALUE;
+        } else {
+            return Long.MIN_VALUE;
+        }
     }
 
     /**
@@ -792,8 +806,12 @@ public class FastLeaderElection implements Election {
             int notTimeout = finalizeWait;
 
             synchronized (this) {
+                /*
+                发送初始化选票
+                在完成选票的初始化后，服务器就会发起第一次投票。zookeeper会将刚刚初始化的选票放入sendqueue队列中，由发生器WorkerSender负责发送出去。
+                * */
                 //给自己投票
-                //logicalclock是一个AtomicLong类型，默认是0，执行incrementAndGet累加操作变成1
+                //logicalclock是一个AtomicLong类型，默认是0，执行incrementAndGet累加操作变成1 这高版本的是
                 //logicalclock维护electionEpoch，即选举轮次，在进行投票结果赛选的时候需要保证大家在一个投票轮次
                 logicalclock++;
                 //updateProposal()方法有三个参数：a.期望投票给哪个服务器(sid)、b.该服务器的zxid、c.该服务器的epoch，在后面会看到这三个参数是选举Leader时的核心指标
@@ -831,6 +849,9 @@ public class FastLeaderElection implements Election {
              *终止时间
                  */
                 //从recvqueue队列中取Notification
+                /*接收外部投票 每台服务器会不断从recvqueue队列中获取外部投票。如果服务器发现无法获取到任何的外部投票，那么就会立即确认自己是否和集群中其他服务器保持着有效连接
+                  如果发现没有建立连接那么就会马上建立连接。如果已经建立了连接，那么就再次发生自己当前的内部投票。
+                  */
                 Notification n = recvqueue.poll(notTimeout,
                         TimeUnit.MILLISECONDS);
 
@@ -893,12 +914,17 @@ public class FastLeaderElection implements Election {
                             而不是步骤a中己方胜出不需要广播，这是因为由于electionEpoch落后导致之前发出的所有投票都是无效的，所以这里需要重新发送
                             * */
                                 logicalclock = n.electionEpoch;
+                                //请求所有已经收到的投票
                                 recvset.clear();
                                 //更新投票信息
                                 if (totalOrderPredicate(n.leader, n.zxid, n.peerEpoch,
                                         getInitId(), getInitLastLoggedZxid(), getPeerEpoch())) {
+                                    //PK如果是对端赢了
+
                                     updateProposal(n.leader, n.zxid, n.peerEpoch);
                                 } else {
+                                    //如果是自己赢了
+
                                     updateProposal(getInitId(),
                                             getInitLastLoggedZxid(),
                                             getPeerEpoch());

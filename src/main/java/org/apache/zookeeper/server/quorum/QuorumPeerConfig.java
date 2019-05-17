@@ -242,6 +242,7 @@ public class QuorumPeerConfig {
                 long sid = Long.parseLong(key.substring(dot + 1));
                 serverWeight.put(sid, Long.parseLong(value));
             } else {
+                //zookeeper还可以配置一些其他属性  如: public static final String ZOOKEEPER_SERVER_CNXN_FACTORY = "zookeeper.serverCnxnFactory";  serverCnxnFactory 可以替换掉默认的NIOServerCnxnFactory实现
                 System.setProperty("zookeeper." + key, value);
             }
         }

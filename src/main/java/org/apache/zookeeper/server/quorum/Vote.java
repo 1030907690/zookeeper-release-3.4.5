@@ -54,13 +54,17 @@ public class Vote {
         this.state = state;
         this.peerEpoch = peerEpoch;
     }
-    
+
+    //被推举的leader的sid值
     final private long id;
-    
+
+    //被推举的leader的事物id
     final private long zxid;
-    
+
+    //逻辑时钟,用来判断多个投票算法在同一轮选举周期中。该值在服务器是一个自增序列。每次进入新一轮的投票后，都会对该值进行加1操作
     final private long electionEpoch;
-    
+
+    //被推举的leader的epoch
     final private long peerEpoch;
     
     public long getId() {
@@ -82,7 +86,7 @@ public class Vote {
     public ServerState getState() {
         return state;
     }
-
+    //当前服务器的状态
     final private ServerState state;
     
     @Override

@@ -42,7 +42,8 @@ import org.apache.zookeeper.server.quorum.QuorumPeer.QuorumServer;
 import org.apache.zookeeper.server.quorum.QuorumPeer.ServerState;
 
 /**
- * @deprecated This class has been deprecated as of release 3.4.0. 
+ * @deprecated This class has been deprecated as of release 3.4.0.
+ * 从3.4.0版开始，该类已被弃用。
  */
 @Deprecated
 public class LeaderElection implements Election  {

@@ -594,12 +594,15 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
         //TODO: use a factory rather than a switch
         switch (electionAlgorithm) {
             case 0:
+                //这是一种存UDP实现的leader选举算法
                 le = new LeaderElection(this);
                 break;
             case 1:
+                // 代表UDP版本的FastLeaderElection 并且是非授权模式
                 le = new AuthFastLeaderElection(this);
                 break;
             case 2:
+                //  代表UDP版本的FastLeaderElection 使用授权模式
                 le = new AuthFastLeaderElection(this, true);
                 break;
             case 3:
@@ -607,6 +610,7 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
                 QuorumCnxManager.Listener listener = qcm.listener;
                 if (listener != null) {
                     listener.start(); //Listener是一个线程，这里启动Listener线程，主要启动选举监听端口并处理连接进来的Socket
+                    //代表TCP版本的FastLeaderElection zookeeper 3.4.0已经弃用其他的了
                     le = new FastLeaderElection(this, qcm); //选举算法使用FastLeaderElection，存在好几种算法实现，但是其它集中算法实现都已经慢慢废弃
                 } else {
                     LOG.error("Null listener when initializing cnx manager");
