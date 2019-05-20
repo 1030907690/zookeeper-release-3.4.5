@@ -743,6 +743,7 @@ public class Leader {
          * 
          * @see org.apache.zookeeper.server.RequestProcessor#processRequest(org.apache.zookeeper.server.Request)
          */
+        @Override
         public void processRequest(Request request) throws RequestProcessorException {
             // request.addRQRec(">tobe");
             next.processRequest(request);
@@ -1008,6 +1009,7 @@ public class Leader {
             QuorumVerifier verifier = self.getQuorumVerifier();
             //判断自身id是否存在electingFollowers , 并且判断接收到超过半数的服务(包含自己)反馈;否则进入else等待超过半数的服务反馈
             if (electingFollowers.contains(self.getId()) && verifier.containsQuorum(electingFollowers)) {
+                LOG.info("已接收到超半数服务的反馈 " + JSON.toJSONString(electingFollowers));
                 //标记为true
                 electionFinished = true;
                 //释放
@@ -1018,9 +1020,11 @@ public class Leader {
                 long end = start + self.getInitLimit()*self.getTickTime();
                 while(!electionFinished && cur < end) {
                     LOG.info("等待反馈 ：" + JSON.toJSONString(electingFollowers));
+                    //同样，为避免线程一直阻塞，休眠线程依然会被添加超时时间，超时后仍未完成则抛出InterruptedException异常重新进入Leader选举状态。
                     electingFollowers.wait(end - cur);
                     cur = System.currentTimeMillis();
                 }
+                //超时后仍未完成则抛出InterruptedException异常重新进入Leader选举状态。
                 if (!electionFinished) {
                     throw new InterruptedException("Timeout while waiting for epoch to be acked by quorum");
                 }

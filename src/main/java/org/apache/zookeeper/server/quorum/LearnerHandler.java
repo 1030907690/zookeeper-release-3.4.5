@@ -308,6 +308,7 @@ public class LearnerHandler extends Thread {
                 /**
                  * 第二步、计算出新epoch后，接下来就通过构建一个LEADERINFO数据包，该数据包中带有新newEpoch值，并将该数据包广播到集群中的所有Learner节点，完成newEpoch同步工作
                  */
+                LOG.info("计算出新的epoch: epoch = "+ newEpoch);
                 QuorumPacket newEpochPacket = new QuorumPacket(Leader.LEADERINFO, ZxidUtils.makeZxid(newEpoch, 0), ver, null);
                 oa.writeRecord(newEpochPacket, "packet");
                 bufferedOutput.flush();
