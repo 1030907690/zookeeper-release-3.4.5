@@ -32,6 +32,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock.ReadLock;
 
+import com.alibaba.fastjson.JSON;
 import org.apache.jute.BinaryInputArchive;
 import org.apache.jute.BinaryOutputArchive;
 import org.apache.jute.Record;
@@ -166,8 +167,9 @@ public class LearnerHandler extends Thread {
     }
 
     static public String packetToString(QuorumPacket p) {
-        if (true)
+        if (true) {
             return null;
+        }
         String type = null;
         String mess = null;
         Record txn = null;
@@ -244,6 +246,7 @@ public class LearnerHandler extends Thread {
              该数据包主要功能：获取到集群中过半节点的epoch，然后找出一个最大的epoch，新epoch就是在这个最大epoch的基础上加1
              */
             ia.readRecord(qp, "packet"); //接收Follower发送过来的FOLLOWERINFO数据包
+            LOG.info("接收到的packet : "+ JSON.toJSONString(qp));
             if(qp.getType() != Leader.FOLLOWERINFO && qp.getType() != Leader.OBSERVERINFO){
             	LOG.error("First packet " + qp.toString()
                         + " is not FOLLOWERINFO or OBSERVERINFO!");

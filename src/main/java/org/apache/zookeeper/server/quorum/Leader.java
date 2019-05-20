@@ -37,6 +37,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
 
+import com.alibaba.fastjson.JSON;
 import org.apache.jute.BinaryOutputArchive;
 import org.apache.zookeeper.server.FinalRequestProcessor;
 import org.apache.zookeeper.server.Request;
@@ -496,8 +497,9 @@ public class Leader {
                     // Followers aren't syncing fast enough,
                     // renounce leadership!
                     StringBuilder ackToString = new StringBuilder();
-                    for(Long id : newLeaderProposal.ackSet)
+                    for(Long id : newLeaderProposal.ackSet) {
                         ackToString.append(id + ": ");
+                    }
                     
                     shutdown("Waiting for a quorum of followers, only synced with: " + ackToString);
                     HashSet<Long> followerSet = new HashSet<Long>();
@@ -508,6 +510,7 @@ public class Leader {
 
                     if (self.getQuorumVerifier().containsQuorum(followerSet)) {
                     //if (followers.size() >= self.quorumPeers.size() / 2) {
+                        LOG.warn("有足够的追随者在场。也许需要增加起始符号。");
                         LOG.warn("Enough followers present. "+
                                 "Perhaps the initTicks need to be increased.");
                     }
@@ -982,6 +985,10 @@ public class Leader {
 
     private HashSet<Long> electingFollowers = new HashSet<Long>();
     private boolean electionFinished = false;
+
+    /**
+     * 2.waitForEpochAck():将新epoch广播给集群中所有Learner节点，该方法会阻塞，直到新epoch广播到集群中，并收到一半以上节点ack反馈时才会继续向下执行
+     */
     public void waitForEpochAck(long id, StateSummary ss) throws IOException, InterruptedException {
         synchronized(electingFollowers) {
             if (electionFinished) {
@@ -995,17 +1002,22 @@ public class Leader {
                                                     + leaderStateSummary.getLastZxid()
                                                     + " (last zxid)");
                 }
+                //把接收到的对端sid添加进去
                 electingFollowers.add(id);
             }
             QuorumVerifier verifier = self.getQuorumVerifier();
+            //判断自身id是否存在electingFollowers , 并且判断接收到超过半数的服务(包含自己)反馈;否则进入else等待超过半数的服务反馈
             if (electingFollowers.contains(self.getId()) && verifier.containsQuorum(electingFollowers)) {
+                //标记为true
                 electionFinished = true;
+                //释放
                 electingFollowers.notifyAll();
             } else {                
                 long start = System.currentTimeMillis();
                 long cur = start;
                 long end = start + self.getInitLimit()*self.getTickTime();
                 while(!electionFinished && cur < end) {
+                    LOG.info("等待反馈 ：" + JSON.toJSONString(electingFollowers));
                     electingFollowers.wait(end - cur);
                     cur = System.currentTimeMillis();
                 }

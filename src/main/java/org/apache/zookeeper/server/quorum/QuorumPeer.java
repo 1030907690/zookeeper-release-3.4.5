@@ -643,12 +643,15 @@ public class QuorumPeer extends Thread implements QuorumStats.Provider {
     }
 
     synchronized public ZooKeeperServer getActiveServer() {
-        if (leader != null)
+        if (leader != null) {
             return leader.zk;
-        else if (follower != null)
+        }
+        else if (follower != null) {
             return follower.zk;
-        else if (observer != null)
+        }
+        else if (observer != null) {
             return observer.zk;
+        }
         return null;
     }
 
