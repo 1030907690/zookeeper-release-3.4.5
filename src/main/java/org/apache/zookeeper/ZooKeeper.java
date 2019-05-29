@@ -129,7 +129,7 @@ public class ZooKeeper {
      * API.
      */
 
-    //客户端watcher管理器
+    //客户端watcher管理器   watcher是一次性的用了一次会被删除
     private static class ZKWatchManager implements ClientWatchManager {
         // 数据变化的Watchers
         private final Map<String, Set<Watcher>> dataWatches =
@@ -142,6 +142,9 @@ public class ZooKeeper {
             new HashMap<String, Set<Watcher>>();
 
         private volatile Watcher defaultWatcher;
+
+
+
 
         final private void addTo(Set<Watcher> from, Set<Watcher> to) {
             if (from != null) {
@@ -158,6 +161,8 @@ public class ZooKeeper {
                                         Watcher.Event.EventType type,
                                         String clientPath)
         {
+
+
             // 新生成结果Watcher集合
             Set<Watcher> result = new HashSet<Watcher>();
 
@@ -321,6 +326,7 @@ public class ZooKeeper {
 
         @Override
         protected Map<String, Set<Watcher>> getWatches(int rc) {
+            //暴露出去方便 添加watcher
             return watchManager.dataWatches;
         }
     }

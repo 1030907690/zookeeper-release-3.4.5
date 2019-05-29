@@ -124,6 +124,9 @@ public class WatchManager {
                 continue;
             }
             //一般情况 w是NIOServerCnxn
+            /*
+             NIOServerCnxn本质上并不是处理客户端watcher真正的业务逻辑 ， 而是借助当前客户端连接的ServerCnxn(NIOServerCnxn继承ServerCnxn)对象来实现对客户端的WathchedEvent传的，真正的客户端watcher回调与业务逻辑执行都在客户端
+            * */
             w.process(e);
         }
         return watchers;

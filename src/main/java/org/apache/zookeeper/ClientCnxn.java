@@ -482,8 +482,7 @@ public class ClientCnxn {
         queueEvent queuePacket  queueEventOfDeath
         * */
         public void queueEvent(WatchedEvent event) {
-            LOG.info("添加队列事件类型 [ {} ]", event.getType());
-
+            System.out.println( "添加队列事件类型 "+ event.getType());
             if (event.getType() == EventType.None
                     && sessionState == event.getState()) {
                 return;
@@ -491,6 +490,7 @@ public class ClientCnxn {
             sessionState = event.getState();
 
             // materialize the watchers based on the event
+            //queueEvent 方法首先会根据该通知事件,从ZKWatchManager中取出相关的Watcher
             WatcherSetEventPair pair = new WatcherSetEventPair(
                     watcher.materialize(event.getState(), event.getType(),
                             event.getPath()),
@@ -557,7 +557,7 @@ public class ClientCnxn {
                     WatcherSetEventPair pair = (WatcherSetEventPair) event;
                     for (Watcher watcher : pair.watchers) {
                         try {
-                            //一种就是我们注册的watch事件
+                            //一种就是我们注册的watch事件  真正回调客户端watcher的地方
                             watcher.process(pair.event);
                         } catch (Throwable t) {
                             LOG.error("Error while calling watcher ", t);
@@ -575,7 +575,7 @@ public class ClientCnxn {
                     } else if (p.response instanceof ExistsResponse
                             || p.response instanceof SetDataResponse
                             || p.response instanceof SetACLResponse) {
-                        //另一种就是处理异步回调函数
+                        //另一种就是处理异步回调函数 , 真正回调客户端watcher的地方
                         StatCallback cb = (StatCallback) p.cb;
                         if (rc == 0) {
                             if (p.response instanceof ExistsResponse) {
@@ -786,10 +786,16 @@ public class ClientCnxn {
                             + Long.toHexString(sessionId));
                 }
                 WatcherEvent event = new WatcherEvent();
+                //从服务端的返回 反序列化出WatcherEvent
                 event.deserialize(bbia, "response");
 
                 // convert from a server path to a client path
                 if (chrootPath != null) {
+                    //处理chrootPath
+                    /*
+                     如果客户端设置了chrootPath属性，那么需要对服务器传过来的完整的节点路径进行chrootPath处理,生成客户端的一个相对节点路径。
+                     例如客户端设置了chrootPath为/app1 ,那么针对服务器端传过来的响应包含的节点路径为/app1/locks ,经过chrootPath处理后，就会变成一个相对路径:/locks。
+                    * */
                     String serverPath = event.getPath();
                     if (serverPath.compareTo(chrootPath) == 0) {
                         event.setPath("/");
@@ -802,6 +808,7 @@ public class ClientCnxn {
                     }
                 }
 
+                // 还原WatchedEvent ，将WatcherEvent转换为WatchedEvent
                 WatchedEvent we = new WatchedEvent(event);
                 if (LOG.isDebugEnabled()) {
                     LOG.debug("Got " + we + " for sessionid 0x"
@@ -831,6 +838,7 @@ public class ClientCnxn {
                     throw new IOException("Nothing in the queue, but got "
                             + replyHdr.getXid());
                 }
+                //从 pendingQueue集合取出Packet
                 packet = pendingQueue.remove();
             }
             /*

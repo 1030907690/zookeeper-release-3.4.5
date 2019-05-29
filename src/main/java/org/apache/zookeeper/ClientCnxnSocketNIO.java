@@ -126,6 +126,7 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
                                 && p.requestHeader.getType() != OpCode.ping
                                 && p.requestHeader.getType() != OpCode.auth) {
                             synchronized (pendingQueue) {
+                                //从outgoingQueue集合取出Packet 放到pendingQueue集合
                                 pendingQueue.add(p);
                             }
                         }
