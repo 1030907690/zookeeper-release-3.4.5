@@ -259,6 +259,7 @@ public class FinalRequestProcessor implements RequestProcessor {
                 break;
             }
             case OpCode.exists: {
+                //exists指令
                 lastOp = "EXIS";
                 // TODO we need to figure out the security requirement for this!
                 ExistsRequest existsRequest = new ExistsRequest();

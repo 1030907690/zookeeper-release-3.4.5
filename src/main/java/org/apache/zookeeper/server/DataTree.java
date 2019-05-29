@@ -649,6 +649,7 @@ public class DataTree {
         }
         synchronized (n) {
             n.copyStat(stat);
+            //如果watcher 不为null 则添加这个节点的watcher
             if (watcher != null) {
                 dataWatches.addWatch(path, watcher);
             }
@@ -661,6 +662,7 @@ public class DataTree {
         Stat stat = new Stat();
         DataNode n = nodes.get(path);
         if (watcher != null) {
+            //添加watcher
             dataWatches.addWatch(path, watcher);
         }
         if (n == null) {

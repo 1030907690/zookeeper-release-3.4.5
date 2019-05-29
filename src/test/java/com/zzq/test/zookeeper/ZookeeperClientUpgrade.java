@@ -111,7 +111,7 @@ public class ZookeeperClientUpgrade implements Watcher{
      * */
     public void initialize() {
         try {
-            zooKeeper = new ZooKeeper("localhost:2181,localhost:2182", 20000, this);
+            zooKeeper = new ZooKeeper("localhost:2181", 20000, this);
             configureContainer.setZooKeeper(zooKeeper);
             doLoadZNodeData();
         } catch (Exception e) {

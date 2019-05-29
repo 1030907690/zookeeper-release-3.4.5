@@ -56,6 +56,7 @@ public class WatchManager {
         return result;
     }
 
+    //添加watcher
     public synchronized void addWatch(String path, Watcher watcher) {
         HashSet<Watcher> list = watchTable.get(path);
         if (list == null) {
@@ -101,6 +102,7 @@ public class WatchManager {
                 KeeperState.SyncConnected, path);
         HashSet<Watcher> watchers;
         synchronized (this) {
+            //弹出并删除这个节点的watch
             watchers = watchTable.remove(path);
             if (watchers == null || watchers.isEmpty()) {
                 if (LOG.isTraceEnabled()) {
@@ -121,6 +123,7 @@ public class WatchManager {
             if (supress != null && supress.contains(w)) {
                 continue;
             }
+            //一般情况 w是NIOServerCnxn
             w.process(e);
         }
         return watchers;
