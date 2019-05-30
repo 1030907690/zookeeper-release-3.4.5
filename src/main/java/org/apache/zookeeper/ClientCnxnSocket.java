@@ -126,6 +126,7 @@ abstract class ClientCnxnSocket {
         }
         ByteBufferInputStream bbis = new ByteBufferInputStream(incomingBuffer);
         BinaryInputArchive bbia = BinaryInputArchive.getArchive(bbis);
+        //ClientCnxnSocket会对接收到的服务端响应进行反序列化，得到ConnectResponse对象，并从中获取到zookeeper服务端分配的会话sessionId
         ConnectResponse conRsp = new ConnectResponse();
         conRsp.deserialize(bbia, "connect");
 
@@ -140,6 +141,11 @@ abstract class ClientCnxnSocket {
         }
 
         this.sessionId = conRsp.getSessionId();
+
+        /*
+            连接成功后，一方面需要通知SendThread线程，进一步对客户端进行会话参数的设置，包括readTimeout和connectTimeout等，并更新客户端状态;另一方面，
+            需要通知地址管理器HostProvider当前成功连接的服务器地址。
+            * */
         sendThread.onConnected(conRsp.getTimeOut(), this.sessionId,
                 conRsp.getPasswd(), isRO);
     }

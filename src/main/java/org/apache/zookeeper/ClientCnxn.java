@@ -82,6 +82,10 @@ import org.slf4j.LoggerFactory;
  * connected to as needed.
  *
  */
+/*
+ 客户端核心线程,其内部又包含两个线程，即SendThread和EventThread。前者是一个I/O线程 ，主要负责zookeeper客户端和服务器端之间的I/O通信；
+ 后者是一个事件线程，主要负责对服务端事件进行处理。
+* */
 public class ClientCnxn {
     private static final Logger LOG = LoggerFactory.getLogger(ClientCnxn.class);
 
@@ -118,11 +122,17 @@ public class ClientCnxn {
     /**
      * These are the packets that have been sent and are waiting for a response.
      */
+    /*
+     服务端响应的等待队列  pendingQueue队列是为了存储哪些已经从客户端发送到服务端的，但是等待服务端响应的Packet集合
+    * */
     private final LinkedList<Packet> pendingQueue = new LinkedList<Packet>();
 
     /**
      * These are the packets that need to be sent.
      */
+    /*
+     代表客户端的请求发送队列，outgoingQueue队列是一个请求发送队列，专门用于存储哪些需要发送到服务端的Packet集合
+    * */
     private final LinkedList<Packet> outgoingQueue = new LinkedList<Packet>();
 
     private int connectTimeout;
@@ -1277,6 +1287,7 @@ public class ClientCnxn {
             if (!readOnly && isRO) {
                 LOG.error("Read/write client got connected to read-only server");
             }
+
             readTimeout = negotiatedSessionTimeout * 2 / 3;
             connectTimeout = negotiatedSessionTimeout / hostProvider.size();
             hostProvider.onConnected();
@@ -1290,6 +1301,10 @@ public class ClientCnxn {
                     + ", sessionid = 0x" + Long.toHexString(sessionId)
                     + ", negotiated timeout = " + negotiatedSessionTimeout
                     + (isRO ? " (READ-ONLY mode)" : ""));
+
+            /*
+            生成事件:SyncConnected-None 为了能够让上层应用感知到会话的成功创建，SendThread会生成一个事件SyncConnected-None，代表客户端与服务器会话创建成功,并将该事件传递给EventThread线程
+            * */
             KeeperState eventState = (isRO) ?
                     KeeperState.ConnectedReadOnly : KeeperState.SyncConnected;
             //发送和客户端的连接事件

@@ -22,6 +22,9 @@ import java.util.Set;
 
 /**
  */
+/*
+ 客户端watcher管理器
+* */
 public interface ClientWatchManager {
     /**
      * Return a set of watchers that should be notified of the event. The 

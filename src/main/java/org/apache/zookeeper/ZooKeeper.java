@@ -83,6 +83,10 @@ import java.util.*;
  * EventNone and state sKeeperStateDisconnected.
  *
  */
+
+/*
+ 客户端的入口
+* */
 public class ZooKeeper {
 
     public static final String ZOOKEEPER_CLIENT_CNXN_SOCKET = "zookeeper.clientCnxnSocket";

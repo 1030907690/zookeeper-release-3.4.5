@@ -58,6 +58,9 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
      * @throws InterruptedException
      * @throws IOException
      */
+    /*
+    * 主要负责对请求的发送和响应接收的过程
+    * */
     void doIO(List<Packet> pendingQueue, LinkedList<Packet> outgoingQueue, ClientCnxn cnxn)
       throws InterruptedException, IOException {
         SocketChannel sock = (SocketChannel) sockKey.channel();
@@ -65,6 +68,8 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
             throw new IOException("Socket is null!");
         }
         if (sockKey.isReadable()) {
+
+
             int rc = sock.read(incomingBuffer);
             if (rc < 0) {
                 throw new EndOfStreamException(
@@ -78,6 +83,9 @@ public class ClientCnxnSocketNIO extends ClientCnxnSocket {
                     recvCount++;
                     readLength();
                 } else if (!initialized) {
+                 /*ClientCnxnSocket接收到服务端的响应后,会首先判断当前客户端状态十分是"已初始化",如果尚未完成初始化,那么就认为该响应一定是会话创建请求的响应，
+                   直接交给readConnectResult方法来处理该响应。
+                   */
                     //读取连接结果
                     readConnectResult();
                     enableRead();

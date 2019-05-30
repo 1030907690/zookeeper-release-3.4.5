@@ -39,6 +39,9 @@ import java.net.InetSocketAddress;
  * * A HostProvider that re-resolves the InetSocketAddress after a timeout. 
  * * A HostProvider that prefers nearby hosts.
  */
+/***
+  客户端地址列表管理器
+ * */
 public interface HostProvider {
     public int size();
 
