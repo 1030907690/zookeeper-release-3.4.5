@@ -72,6 +72,11 @@ import org.slf4j.LoggerFactory;
  * full paths to DataNodes and a tree of DataNodes. All accesses to a path is
  * through the hashtable. The tree is traversed only when serializing to disk.
  */
+
+/***
+ * DataTree是zookeeper内存数据存储的核心，是一个"树"的数据结构,代表了内存中的一份完整的数据。DataTree不包含任何与网络、客户端连接以及请求处理等相关的业务逻辑，
+ * 是一个非常独立的zookeeper组件。
+ * */
 public class DataTree {
     private static final Logger LOG = LoggerFactory.getLogger(DataTree.class);
 
@@ -79,6 +84,11 @@ public class DataTree {
      * This hashtable provides a fast lookup to the datanodes. The tree is the
      * source of truth and is where all the locking occurs
      */
+    /*
+    * DataTree用于存储所有zookeeper节点的路径，数据内容及其ACL信息等，底层数据结构其实是一个典型的ConcurrentHashMap键值对结构
+    * 在nodes这个Map中，存放了zookeeper服务器上所有的数据节点，可以说，对于zookeeper数据的所有操作，底层都是对这个Map结构的操作。
+    * 你odes以数据节点的路径(path)为key，value则是节点的数据内容:DataNode
+    * */
     private final ConcurrentHashMap<String, DataNode> nodes =
         new ConcurrentHashMap<String, DataNode>();
 
@@ -113,6 +123,9 @@ public class DataTree {
     /**
      * This hashtable lists the paths of the ephemeral nodes of a session.
      */
+    /*
+    * 对于所有的临时节点，为了便于实时访问和及时清理，DataTree中还单独将临时节点保存起来
+    * */
     private final Map<Long, HashSet<String>> ephemerals =
         new ConcurrentHashMap<Long, HashSet<String>>();
 

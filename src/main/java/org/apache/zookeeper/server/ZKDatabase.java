@@ -56,6 +56,10 @@ import org.apache.zookeeper.txn.TxnHeader;
  * committed logs. It is booted up  after reading the logs
  * and snapshots from the disk.
  */
+/*
+* ZKDatabase，正如其名字一样，是zookeeper的内存数据库，负责管理zookeeper的所有会话、DataTree存储和事物日志，ZKDatabase会定时向磁盘dump快照数据，
+* 同时在zookeeper服务器启动的时候，会通过磁盘上的事物日志和快照数据文件恢复成一个完成的内存数据库。
+* */
 public class ZKDatabase {
     
     private static final Logger LOG = LoggerFactory.getLogger(ZKDatabase.class);
