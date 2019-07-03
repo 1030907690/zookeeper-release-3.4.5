@@ -106,7 +106,9 @@ public class MasterSwitch implements Watcher {
             case None:
                 break;
             case NodeDeleted:
+                //  如果ROOT_PATH被删除了，意味着master程序已停止
                 if(ROOT_PATH.equals(event.getPath())){
+                    // 尝试创建master节点
                     createNode();
                 }
                 break;
