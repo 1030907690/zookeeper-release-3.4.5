@@ -41,6 +41,10 @@ import org.apache.zookeeper.server.persistence.Util;
  * files and snapdir files keeping the last "-n" snapshot files
  * and the corresponding logs.
  */
+
+/*
+* 清理工具：PurgeTxnLog ，历史快照数据和事物日志文件清理
+* */
 public class PurgeTxnLog {
     private static final Logger LOG = LoggerFactory.getLogger(PurgeTxnLog.class);
 

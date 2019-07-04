@@ -175,9 +175,9 @@ public class QuorumPeerConfig {
                 {
                     throw new ConfigException("Unrecognised peertype: " + value);
                 }
-            } else if (key.equals("autopurge.snapRetainCount")) {
+            } else if (key.equals("autopurge.snapRetainCount")) { //  该值默认为3 清理事物日志和快照数据文件,最小值是3 如果小于3 会自动调整为3
                 snapRetainCount = Integer.parseInt(value);
-            } else if (key.equals("autopurge.purgeInterval")) {
+            } else if (key.equals("autopurge.purgeInterval")) { // 该值默认为0 可以不配置，与autopurge.snapRetainCount配套使用，配置文件自动清理的频率。如果是0或负数,则不开启定时清理功能。
                 purgeInterval = Integer.parseInt(value);
             } else if (key.startsWith("server.")) {
                 //配置集群

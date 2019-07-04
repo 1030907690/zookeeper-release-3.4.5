@@ -44,6 +44,12 @@ import org.slf4j.LoggerFactory;
  * of txnlog and snapshot 
  * classes
  */
+
+
+/*
+* FileTxnSnapLog是zookeeper事物日志和快照数据访问层,用于衔接上层业务与底层数据存储。底层数据包含了事物日志和快照数据两部分，
+* 因此FileTxnSnapLog内部又分为FileTxnLog和FileSnap的初始化，分别代表事物日志管理器和快照数据管理器的初始化。
+* */
 public class FileTxnSnapLog {
     //the direcotry containing the 
     //the transaction logs

@@ -35,6 +35,11 @@ import org.apache.zookeeper.data.StatPersisted;
  * array of ACLs, a stat object, and a set of its children's paths.
  * 
  */
+
+/*
+*  DataNode是数据存储的最小单元，DataNode内部除了保存了节点数据内容(data[]) ACL列表(acl)和节点状态(stat)置为,正如最基本的数据结构中对树的描述
+* ，还记录了父节点(parent) 的引用和子节点列表(children) 两个属性。同时，DataNode还提供了对子节点列表操作的各个接口
+* */
 public class DataNode implements Record {
     /** the parent of this datanode */
     DataNode parent;

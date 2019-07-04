@@ -37,6 +37,9 @@ import org.apache.zookeeper.server.persistence.FileSnap;
 /**
  * Dump a snapshot file to stdout.
  */
+/*
+* 格式化
+* */
 public class SnapshotFormatter {
 
     /**
