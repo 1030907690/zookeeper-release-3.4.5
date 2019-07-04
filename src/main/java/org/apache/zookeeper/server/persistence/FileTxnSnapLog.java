@@ -71,6 +71,9 @@ public class FileTxnSnapLog {
      * while the data is being 
      * restored.
      */
+    /*
+    * PlayBackListener 是一个事物应用监听器，用于在事物应用过程中的回调:每当成功将一条事物日志应用到内存数据库中后，就会调用这个监听器。
+    * */
     public interface PlayBackListener {
         void onTxnLoaded(TxnHeader hdr, Record rec);
     }
