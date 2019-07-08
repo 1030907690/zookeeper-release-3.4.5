@@ -113,7 +113,14 @@ public class MasterSwitch implements Watcher {
                 }
                 break;
             case NodeCreated:
-
+                if(ROOT_PATH.equals(event.getPath())) {
+                    try {
+                        //是否存在 先监听一下
+                        zooKeeper.exists(event.getPath(), true);
+                    } catch (Exception e) {
+                        System.out.println("异常.........." + e.getMessage());
+                    }
+                }
                 break;
             case NodeDataChanged:
 
