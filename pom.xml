@@ -41,7 +41,7 @@
         <dependency>
             <groupId>io.netty</groupId>
             <artifactId>netty-all</artifactId>
-            <version>3.2.2.Final</version>
+            <version>4.1.42.Final</version>
             <scope>system</scope>
             <systemPath>${basedir}/dependencies/netty-3.2.2.Final.jar</systemPath>
         </dependency>
