@@ -85,8 +85,6 @@ public class QuorumPeerMain {
             args = new String[1];
             args[0] = configPathPrefix + "zoo_sample.cfg";
 
-            //自定义log4j.properties的加载位置 2019年5月6日11:58:07
-            PropertyConfigurator.configure(configPathPrefix + "log4j.properties");
 
         }
 

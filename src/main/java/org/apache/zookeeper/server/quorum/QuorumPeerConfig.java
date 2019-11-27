@@ -210,6 +210,7 @@ public class QuorumPeerConfig {
                     InetSocketAddress electionAddr = new InetSocketAddress(
                             parts[0], Integer.parseInt(parts[2]));
                     LearnerType type = LearnerType.PARTICIPANT;
+                    //如果是这样的 server.2=127.0.0.1:4888:5888:observer 则是observer角色
                     if (parts[3].toLowerCase().equals("observer")) {
                         type = LearnerType.OBSERVER;
                         observers.put(Long.valueOf(sid), new QuorumServer(sid, addr,
