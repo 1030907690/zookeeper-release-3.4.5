@@ -58,7 +58,7 @@
         <dependency>
             <groupId>com.puppycrawl.tools</groupId>
             <artifactId>checkstyle</artifactId>
-            <version>5.0</version>
+            <version>8.18</version>
             <scope>system</scope>
             <systemPath>${basedir}/dependencies/checkstyle-5.0.jar</systemPath>
         </dependency>
