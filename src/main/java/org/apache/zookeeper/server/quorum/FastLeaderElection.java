@@ -799,7 +799,13 @@ public class FastLeaderElection implements Election {
             self.start_fle = System.currentTimeMillis();
         }
         try {
-            HashMap<Long, Vote> recvset = new HashMap<Long, Vote>();
+            /* 1、投给自己
+               2、接收其他服务器的选票
+               3、pk
+               4、投票
+               5、统计
+            */
+            HashMap<Long, Vote> recvset = new HashMap<Long, Vote>(); // 投票箱，key:其他服务器的sid,Vote
 
             HashMap<Long, Vote> outofelection = new HashMap<Long, Vote>();
 
